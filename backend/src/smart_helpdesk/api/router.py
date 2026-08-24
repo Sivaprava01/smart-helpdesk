@@ -1,7 +1,9 @@
 from fastapi import APIRouter
-from smart_helpdesk.api.routes import health
+from smart_helpdesk.api.routes import customers, health, service_categories
 
 api_router = APIRouter()
 
-# Include feature route modules
+# Register API routes
 api_router.include_router(health.router)
+api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
+api_router.include_router(service_categories.router, prefix="/categories", tags=["categories"])
