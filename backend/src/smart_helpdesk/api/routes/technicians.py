@@ -36,16 +36,18 @@ def list_technicians_endpoint(
     is_active: bool | None = Query(None, description="Filter by active status"),
     is_on_duty: bool | None = Query(None, description="Filter by on-duty status"),
     category_id: uuid.UUID | None = Query(None, description="Filter by supported skill category ID"),
+    current_zone: str | None = Query(None, description="Filter by technician current zone"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of records to return"),
     db: Session = Depends(get_db),
 ) -> list[TechnicianResponse]:
-    """Retrieve a list of technicians with optional status and category filters."""
+    """Retrieve a list of technicians with optional status, category, and zone filters."""
     return technician_service.list_technicians(
         db,
         is_active=is_active,
         is_on_duty=is_on_duty,
         category_id=category_id,
+        current_zone=current_zone,
         skip=skip,
         limit=limit,
     )
@@ -74,5 +76,5 @@ def update_technician_endpoint(
     technician_in: TechnicianUpdate,
     db: Session = Depends(get_db),
 ) -> TechnicianResponse:
-    """Partially update technician details, availability, and supported skill categories."""
+    """Partially update technician details, availability, zone, and supported skill categories."""
     return technician_service.update_technician(db, technician_id, technician_in)

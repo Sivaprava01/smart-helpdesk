@@ -69,6 +69,11 @@ class Technician(BaseModel):
         default=False,
         nullable=False,
     )
+    current_zone: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        default=None,
+    )
     current_workload: Mapped[int] = mapped_column(
         Integer,
         default=0,
