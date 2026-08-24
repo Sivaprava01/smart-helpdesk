@@ -10,6 +10,15 @@ from smart_helpdesk.schemas.assignment import (
     AssignmentResponse,
     FallbackSummary,
 )
+from smart_helpdesk.schemas.execution import (
+    CompleteWorkRequest,
+    ExecutionActionResponse,
+)
+from smart_helpdesk.schemas.feedback import (
+    CustomerResponseRequest,
+    ResolutionResponse,
+    TicketFeedbackResponse,
+)
 from smart_helpdesk.schemas.ticket import (
     TicketCreate,
     TicketResponse,
@@ -18,6 +27,8 @@ from smart_helpdesk.schemas.ticket import (
 )
 from smart_helpdesk.services import (
     assignment_service,
+    execution_service,
+    resolution_service,
     routing_service,
     ticket_service,
 )
@@ -187,3 +198,129 @@ def get_ticket_assignments_endpoint(
     """Retrieve full history of assignment offers and responses for a specific ticket."""
     assignments = assignment_service.list_ticket_assignments(db, ticket_id)
     return [AssignmentResponse.model_validate(a) for a in assignments]
+
+
+@router.post(
+    "/{ticket_id}/arrive",
+    response_model=ExecutionActionResponse,
+    summary="Technician Marks Arrival",
+)
+def mark_technician_arrived_endpoint(
+    ticket_id: uuid.UUID,
+    technician_id: uuid.UUID | None = Query(None, description="Optional technician ID verification"),
+    db: Session = Depends(get_db),
+) -> ExecutionActionResponse:
+    """Technician marks arrival on site for an assigned ticket."""
+    ticket, assignment = execution_service.mark_technician_arrived(
+        db,
+        ticket_id=ticket_id,
+        technician_id=technician_id,
+    )
+    return ExecutionActionResponse(
+        ticket_id=ticket.id,
+        status=ticket.status,
+        assignment_id=assignment.id,
+        technician_id=assignment.technician_id,
+        arrived_at=assignment.arrived_at,
+        work_started_at=assignment.work_started_at,
+        work_completed_at=assignment.work_completed_at,
+        completion_note=assignment.completion_note,
+    )
+
+
+@router.post(
+    "/{ticket_id}/start-work",
+    response_model=ExecutionActionResponse,
+    summary="Technician Starts Work",
+)
+def start_technician_work_endpoint(
+    ticket_id: uuid.UUID,
+    technician_id: uuid.UUID | None = Query(None, description="Optional technician ID verification"),
+    db: Session = Depends(get_db),
+) -> ExecutionActionResponse:
+    """Technician initiates work after marking arrival (ticket moves to IN_PROGRESS)."""
+    ticket, assignment = execution_service.start_technician_work(
+        db,
+        ticket_id=ticket_id,
+        technician_id=technician_id,
+    )
+    return ExecutionActionResponse(
+        ticket_id=ticket.id,
+        status=ticket.status,
+        assignment_id=assignment.id,
+        technician_id=assignment.technician_id,
+        arrived_at=assignment.arrived_at,
+        work_started_at=assignment.work_started_at,
+        work_completed_at=assignment.work_completed_at,
+        completion_note=assignment.completion_note,
+    )
+
+
+@router.post(
+    "/{ticket_id}/complete-work",
+    response_model=ExecutionActionResponse,
+    summary="Technician Completes Work",
+)
+def complete_technician_work_endpoint(
+    ticket_id: uuid.UUID,
+    request_in: CompleteWorkRequest | None = None,
+    technician_id: uuid.UUID | None = Query(None, description="Optional technician ID verification"),
+    db: Session = Depends(get_db),
+) -> ExecutionActionResponse:
+    """Technician marks work complete (ticket moves to AWAITING_CUSTOMER_CONFIRMATION)."""
+    ticket, assignment = execution_service.complete_technician_work(
+        db,
+        ticket_id=ticket_id,
+        request_in=request_in,
+        technician_id=technician_id,
+    )
+    return ExecutionActionResponse(
+        ticket_id=ticket.id,
+        status=ticket.status,
+        assignment_id=assignment.id,
+        technician_id=assignment.technician_id,
+        arrived_at=assignment.arrived_at,
+        work_started_at=assignment.work_started_at,
+        work_completed_at=assignment.work_completed_at,
+        completion_note=assignment.completion_note,
+    )
+
+
+@router.post(
+    "/{ticket_id}/customer-response",
+    response_model=ResolutionResponse,
+    summary="Customer Submits Resolution Response and Feedback",
+)
+def customer_response_endpoint(
+    ticket_id: uuid.UUID,
+    feedback_in: CustomerResponseRequest,
+    customer_id: uuid.UUID | None = Query(None, description="Optional customer ID verification"),
+    db: Session = Depends(get_db),
+) -> ResolutionResponse:
+    """Customer confirms whether the issue was resolved and optionally provides rating and feedback."""
+    ticket, feedback, fallback = resolution_service.process_customer_resolution_response(
+        db,
+        ticket_id=ticket_id,
+        feedback_in=feedback_in,
+        customer_id=customer_id,
+    )
+    return ResolutionResponse(
+        ticket_id=ticket.id,
+        ticket_status=ticket.status,
+        feedback=TicketFeedbackResponse.model_validate(feedback),
+        fallback=fallback,
+    )
+
+
+@router.get(
+    "/{ticket_id}/feedback-history",
+    response_model=list[TicketFeedbackResponse],
+    summary="Get Ticket Feedback History",
+)
+def get_ticket_feedback_history_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[TicketFeedbackResponse]:
+    """Retrieve all feedback submissions for this ticket across service attempts."""
+    feedbacks = resolution_service.list_ticket_feedbacks(db, ticket_id)
+    return [TicketFeedbackResponse.model_validate(f) for f in feedbacks]

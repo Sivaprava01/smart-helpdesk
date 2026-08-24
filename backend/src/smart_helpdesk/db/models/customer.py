@@ -9,6 +9,7 @@ if TYPE_CHECKING:
         CustomerTechnicianHistory,
     )
     from smart_helpdesk.db.models.ticket import Ticket
+    from smart_helpdesk.db.models.ticket_feedback import TicketFeedback
 
 
 class Customer(BaseModel):
@@ -54,6 +55,11 @@ class Customer(BaseModel):
     )
     technician_histories: Mapped[list["CustomerTechnicianHistory"]] = relationship(
         "CustomerTechnicianHistory",
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+    feedbacks: Mapped[list["TicketFeedback"]] = relationship(
+        "TicketFeedback",
         back_populates="customer",
         cascade="all, delete-orphan",
     )

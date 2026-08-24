@@ -10,6 +10,7 @@ from smart_helpdesk.db.models.base import BaseModel
 if TYPE_CHECKING:
     from smart_helpdesk.db.models.technician import Technician
     from smart_helpdesk.db.models.ticket import Ticket
+    from smart_helpdesk.db.models.ticket_feedback import TicketFeedback
 
 
 class TechnicianAssignment(BaseModel):
@@ -55,11 +56,27 @@ class TechnicianAssignment(BaseModel):
         DateTime(timezone=True),
         nullable=True,
     )
+    arrived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    work_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    work_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     decline_reason: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
     )
     decline_note: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    completion_note: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -76,4 +93,9 @@ class TechnicianAssignment(BaseModel):
     technician: Mapped["Technician"] = relationship(
         "Technician",
         back_populates="assignments",
+    )
+    feedbacks: Mapped[list["TicketFeedback"]] = relationship(
+        "TicketFeedback",
+        back_populates="assignment",
+        cascade="all, delete-orphan",
     )
