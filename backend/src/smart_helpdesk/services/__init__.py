@@ -1,5 +1,15 @@
 """Business services package for domain rules and data interactions."""
 
+from smart_helpdesk.services.assignment_service import (
+    accept_assignment,
+    decline_assignment,
+    defer_assignment,
+    get_active_assignment_for_ticket,
+    list_ticket_assignments,
+    process_expired_assignments,
+    reroute_ticket,
+    start_assignment,
+)
 from smart_helpdesk.services.customer_service import (
     create_customer,
     get_customer,
@@ -31,12 +41,16 @@ from smart_helpdesk.services.ticket_service import (
 )
 
 __all__ = [
+    "accept_assignment",
     "cancel_ticket",
     "create_category",
     "create_customer",
     "create_technician",
     "create_ticket",
+    "decline_assignment",
+    "defer_assignment",
     "evaluate_ticket_routing",
+    "get_active_assignment_for_ticket",
     "get_category",
     "get_customer",
     "get_technician",
@@ -45,7 +59,11 @@ __all__ = [
     "list_categories",
     "list_customers",
     "list_technicians",
+    "list_ticket_assignments",
     "list_tickets",
+    "process_expired_assignments",
+    "reroute_ticket",
+    "start_assignment",
     "update_category",
     "update_customer",
     "update_technician",

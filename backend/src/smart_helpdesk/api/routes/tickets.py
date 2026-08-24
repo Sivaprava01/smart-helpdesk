@@ -5,13 +5,22 @@ from sqlalchemy.orm import Session
 from smart_helpdesk.db.enums import TicketStatus
 from smart_helpdesk.db.session import get_db
 from smart_helpdesk.routing.schemas import RoutingPreviewResponse
+from smart_helpdesk.schemas.assignment import (
+    AssignmentActionResponse,
+    AssignmentResponse,
+    FallbackSummary,
+)
 from smart_helpdesk.schemas.ticket import (
     TicketCreate,
     TicketResponse,
     TicketStatusResponse,
     TicketUpdate,
 )
-from smart_helpdesk.services import routing_service, ticket_service
+from smart_helpdesk.services import (
+    assignment_service,
+    routing_service,
+    ticket_service,
+)
 
 router = APIRouter()
 
@@ -133,3 +142,48 @@ def preview_ticket_routing_get_endpoint(
 ) -> RoutingPreviewResponse:
     """Evaluate and preview deterministic technician eligibility and ranking for a ticket (idempotent read)."""
     return routing_service.evaluate_ticket_routing(db, ticket_id)
+
+
+@router.post(
+    "/{ticket_id}/assign",
+    response_model=AssignmentActionResponse,
+    summary="Start Ticket Assignment",
+)
+def start_ticket_assignment_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> AssignmentActionResponse:
+    """Start the assignment workflow for a ticket and dispatch an offer to the top ranked technician."""
+    assignment, status_msg = assignment_service.start_assignment(db, ticket_id)
+    if assignment:
+        fallback = FallbackSummary(
+            status=status_msg,
+            assignment_id=assignment.id,
+            technician_id=assignment.technician_id,
+            response_deadline=assignment.expires_at,
+        )
+        return AssignmentActionResponse(
+            ticket_id=ticket_id,
+            assignment=AssignmentResponse.model_validate(assignment),
+            fallback=fallback,
+        )
+    else:
+        return AssignmentActionResponse(
+            ticket_id=ticket_id,
+            assignment=None,
+            fallback=FallbackSummary(status=status_msg),
+        )
+
+
+@router.get(
+    "/{ticket_id}/assignments",
+    response_model=list[AssignmentResponse],
+    summary="Get Ticket Assignment Attempts History",
+)
+def get_ticket_assignments_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[AssignmentResponse]:
+    """Retrieve full history of assignment offers and responses for a specific ticket."""
+    assignments = assignment_service.list_ticket_assignments(db, ticket_id)
+    return [AssignmentResponse.model_validate(a) for a in assignments]

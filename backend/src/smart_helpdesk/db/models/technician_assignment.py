@@ -51,7 +51,15 @@ class TechnicianAssignment(BaseModel):
         DateTime(timezone=True),
         nullable=True,
     )
+    deferred_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     decline_reason: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+    decline_note: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
