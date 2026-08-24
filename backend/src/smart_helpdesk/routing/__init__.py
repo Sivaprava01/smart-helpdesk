@@ -16,12 +16,21 @@ from smart_helpdesk.routing.eligibility import (
     evaluate_technician_eligibility,
     filter_eligible_technicians,
 )
+from smart_helpdesk.routing.ranking import rank_eligible_technicians
 from smart_helpdesk.routing.schemas import (
     ExcludedCandidate,
     RankedCandidate,
     RecommendedTechnician,
     RoutingPreviewResponse,
     ScoreBreakdown,
+)
+from smart_helpdesk.routing.scoring import (
+    calculate_candidate_score,
+    compute_history_score,
+    compute_location_score,
+    compute_rating_score,
+    compute_reopen_score,
+    compute_workload_score,
 )
 
 __all__ = [
@@ -40,6 +49,13 @@ __all__ = [
     "WEIGHT_RATING",
     "WEIGHT_REOPEN_RATE",
     "WEIGHT_WORKLOAD",
+    "calculate_candidate_score",
+    "compute_history_score",
+    "compute_location_score",
+    "compute_rating_score",
+    "compute_reopen_score",
+    "compute_workload_score",
     "evaluate_technician_eligibility",
     "filter_eligible_technicians",
+    "rank_eligible_technicians",
 ]
