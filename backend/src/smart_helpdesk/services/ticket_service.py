@@ -85,3 +85,51 @@ def get_ticket_status(db: Session, ticket_id: uuid.UUID) -> dict[str, object]:
         "status": ticket.status,
         "updated_at": ticket.updated_at,
     }
+
+
+def update_ticket(db: Session, ticket_id: uuid.UUID, ticket_in: TicketUpdate) -> Ticket:
+    """Applies controlled partial updates to ticket details before assignment."""
+    ticket = get_ticket(db, ticket_id)
+
+    # Lifecycle protection: only pre-assignment tickets in PENDING status can be updated
+    if ticket.status != TicketStatus.PENDING:
+        raise BusinessRuleError(
+            f"Cannot edit ticket in '{ticket.status.value}' status. Only PENDING tickets can be updated."
+        )
+
+    update_data = ticket_in.model_dump(exclude_unset=True)
+    if not update_data:
+        return ticket
+
+    # Validate category update if requested
+    if "category_id" in update_data and update_data["category_id"] != ticket.category_id:
+        new_category = db.get(ServiceCategory, update_data["category_id"])
+        if not new_category:
+            raise EntityNotFoundError(f"Service category with id '{update_data['category_id']}' not found")
+        if not new_category.is_active:
+            raise BusinessRuleError(f"Service category '{new_category.name}' is inactive and cannot be assigned")
+
+    for key, value in update_data.items():
+        setattr(ticket, key, value)
+
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
+def cancel_ticket(db: Session, ticket_id: uuid.UUID) -> Ticket:
+    """Cancels a pending ticket safely without deleting historical data."""
+    ticket = get_ticket(db, ticket_id)
+
+    if ticket.status == TicketStatus.CANCELLED:
+        raise BusinessRuleError("Ticket is already cancelled")
+
+    if ticket.status != TicketStatus.PENDING:
+        raise BusinessRuleError(
+            f"Cannot cancel ticket in '{ticket.status.value}' status. Only PENDING tickets can be cancelled."
+        )
+
+    ticket.status = TicketStatus.CANCELLED
+    db.commit()
+    db.refresh(ticket)
+    return ticket

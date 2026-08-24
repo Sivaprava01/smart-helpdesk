@@ -8,6 +8,7 @@ from smart_helpdesk.schemas.ticket import (
     TicketCreate,
     TicketResponse,
     TicketStatusResponse,
+    TicketUpdate,
 )
 from smart_helpdesk.services import ticket_service
 
@@ -67,6 +68,20 @@ def get_ticket_endpoint(
     return ticket_service.get_ticket(db, ticket_id)
 
 
+@router.patch(
+    "/{ticket_id}",
+    response_model=TicketResponse,
+    summary="Update Ticket Details",
+)
+def update_ticket_endpoint(
+    ticket_id: uuid.UUID,
+    ticket_in: TicketUpdate,
+    db: Session = Depends(get_db),
+) -> TicketResponse:
+    """Partially update allowed ticket details before assignment."""
+    return ticket_service.update_ticket(db, ticket_id, ticket_in)
+
+
 @router.get(
     "/{ticket_id}/status",
     response_model=TicketStatusResponse,
@@ -78,3 +93,16 @@ def get_ticket_status_endpoint(
 ) -> TicketStatusResponse:
     """Lightweight endpoint for polling ticket lifecycle status."""
     return ticket_service.get_ticket_status(db, ticket_id)
+
+
+@router.post(
+    "/{ticket_id}/cancel",
+    response_model=TicketResponse,
+    summary="Cancel Ticket",
+)
+def cancel_ticket_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> TicketResponse:
+    """Cancel a pending service ticket safely preserving historical records."""
+    return ticket_service.cancel_ticket(db, ticket_id)

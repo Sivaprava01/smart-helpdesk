@@ -19,13 +19,16 @@ from smart_helpdesk.services.technician_service import (
     update_technician,
 )
 from smart_helpdesk.services.ticket_service import (
+    cancel_ticket,
     create_ticket,
     get_ticket,
     get_ticket_status,
     list_tickets,
+    update_ticket,
 )
 
 __all__ = [
+    "cancel_ticket",
     "create_category",
     "create_customer",
     "create_technician",
@@ -42,4 +45,5 @@ __all__ = [
     "update_category",
     "update_customer",
     "update_technician",
+    "update_ticket",
 ]
