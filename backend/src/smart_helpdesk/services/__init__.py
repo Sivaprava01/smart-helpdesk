@@ -18,17 +18,27 @@ from smart_helpdesk.services.technician_service import (
     list_technicians,
     update_technician,
 )
+from smart_helpdesk.services.ticket_service import (
+    create_ticket,
+    get_ticket,
+    get_ticket_status,
+    list_tickets,
+)
 
 __all__ = [
     "create_category",
     "create_customer",
     "create_technician",
+    "create_ticket",
     "get_category",
     "get_customer",
     "get_technician",
+    "get_ticket",
+    "get_ticket_status",
     "list_categories",
     "list_customers",
     "list_technicians",
+    "list_tickets",
     "update_category",
     "update_customer",
     "update_technician",
