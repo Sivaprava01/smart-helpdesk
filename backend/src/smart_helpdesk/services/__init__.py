@@ -16,6 +16,12 @@ from smart_helpdesk.services.customer_service import (
     list_customers,
     update_customer,
 )
+from smart_helpdesk.services.execution_service import (
+    complete_technician_work,
+    get_active_accepted_assignment,
+    mark_technician_arrived,
+    start_technician_work,
+)
 from smart_helpdesk.services.routing_service import (
     evaluate_ticket_routing,
 )
@@ -43,6 +49,7 @@ from smart_helpdesk.services.ticket_service import (
 __all__ = [
     "accept_assignment",
     "cancel_ticket",
+    "complete_technician_work",
     "create_category",
     "create_customer",
     "create_technician",
@@ -50,6 +57,7 @@ __all__ = [
     "decline_assignment",
     "defer_assignment",
     "evaluate_ticket_routing",
+    "get_active_accepted_assignment",
     "get_active_assignment_for_ticket",
     "get_category",
     "get_customer",
@@ -61,9 +69,11 @@ __all__ = [
     "list_technicians",
     "list_ticket_assignments",
     "list_tickets",
+    "mark_technician_arrived",
     "process_expired_assignments",
     "reroute_ticket",
     "start_assignment",
+    "start_technician_work",
     "update_category",
     "update_customer",
     "update_technician",
