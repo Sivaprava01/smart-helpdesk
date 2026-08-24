@@ -3,7 +3,6 @@ import uuid
 from pydantic import BaseModel, ConfigDict, Field
 
 from smart_helpdesk.db.enums import AssignmentStatus, DeclineReason
-from smart_helpdesk.schemas.technician import TechnicianResponse
 
 
 class DeclineRequest(BaseModel):
@@ -45,10 +44,10 @@ class FallbackSummary(BaseModel):
 
 
 class AssignmentActionResponse(BaseModel):
-    """Response returned when an assignment action (accept, decline, defer) is processed."""
+    """Response returned when an assignment action (start, accept, decline, defer) is processed."""
 
     ticket_id: uuid.UUID
-    assignment: AssignmentResponse
+    assignment: AssignmentResponse | None = None
     fallback: FallbackSummary | None = None
 
 

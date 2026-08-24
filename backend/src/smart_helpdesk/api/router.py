@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from smart_helpdesk.api.routes import (
+    assignments,
     customers,
     health,
     service_categories,
@@ -15,3 +16,4 @@ api_router.include_router(customers.router, prefix="/customers", tags=["customer
 api_router.include_router(service_categories.router, prefix="/categories", tags=["categories"])
 api_router.include_router(technicians.router, prefix="/technicians", tags=["technicians"])
 api_router.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
+api_router.include_router(assignments.router, prefix="/assignments", tags=["assignments"])
