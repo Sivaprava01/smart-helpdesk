@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from smart_helpdesk.db.models.technician_assignment import (
         TechnicianAssignment,
     )
+    from smart_helpdesk.db.models.ticket_feedback import TicketFeedback
 
 
 class Technician(BaseModel):
@@ -40,6 +41,14 @@ class Technician(BaseModel):
         CheckConstraint(
             "reopened_jobs_count >= 0",
             name="ck_technicians_reopened_jobs_non_negative",
+        ),
+        CheckConstraint(
+            "rating_sum >= 0",
+            name="ck_technicians_rating_sum_non_negative",
+        ),
+        CheckConstraint(
+            "rating_count >= 0",
+            name="ck_technicians_rating_count_non_negative",
         ),
     )
 
@@ -89,6 +98,16 @@ class Technician(BaseModel):
         nullable=True,
         default=None,
     )
+    rating_sum: Mapped[Decimal] = mapped_column(
+        Numeric(precision=10, scale=2),
+        default=Decimal("0.00"),
+        nullable=False,
+    )
+    rating_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
     completed_jobs_count: Mapped[int] = mapped_column(
         Integer,
         default=0,
@@ -112,5 +131,9 @@ class Technician(BaseModel):
     )
     customer_histories: Mapped[list["CustomerTechnicianHistory"]] = relationship(
         "CustomerTechnicianHistory",
+        back_populates="technician",
+    )
+    feedbacks: Mapped[list["TicketFeedback"]] = relationship(
+        "TicketFeedback",
         back_populates="technician",
     )

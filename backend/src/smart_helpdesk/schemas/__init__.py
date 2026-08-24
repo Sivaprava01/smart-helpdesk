@@ -13,6 +13,15 @@ from smart_helpdesk.schemas.customer import (
     CustomerResponse,
     CustomerUpdate,
 )
+from smart_helpdesk.schemas.execution import (
+    CompleteWorkRequest,
+    ExecutionActionResponse,
+)
+from smart_helpdesk.schemas.feedback import (
+    CustomerResponseRequest,
+    ResolutionResponse,
+    TicketFeedbackResponse,
+)
 from smart_helpdesk.schemas.service_category import (
     ServiceCategoryBriefResponse,
     ServiceCategoryCreate,
@@ -35,13 +44,17 @@ from smart_helpdesk.schemas.ticket import (
 __all__ = [
     "AssignmentActionResponse",
     "AssignmentResponse",
+    "CompleteWorkRequest",
     "CustomerBriefResponse",
     "CustomerCreate",
     "CustomerResponse",
+    "CustomerResponseRequest",
     "CustomerUpdate",
     "DeclineRequest",
+    "ExecutionActionResponse",
     "ExpiredProcessingResponse",
     "FallbackSummary",
+    "ResolutionResponse",
     "ServiceCategoryBriefResponse",
     "ServiceCategoryCreate",
     "ServiceCategoryResponse",
@@ -51,6 +64,7 @@ __all__ = [
     "TechnicianResponse",
     "TechnicianUpdate",
     "TicketCreate",
+    "TicketFeedbackResponse",
     "TicketResponse",
     "TicketStatusResponse",
     "TicketUpdate",
