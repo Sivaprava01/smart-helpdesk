@@ -14,6 +14,11 @@ from smart_helpdesk.schemas.execution import (
     CompleteWorkRequest,
     ExecutionActionResponse,
 )
+from smart_helpdesk.schemas.feedback import (
+    CustomerResponseRequest,
+    ResolutionResponse,
+    TicketFeedbackResponse,
+)
 from smart_helpdesk.schemas.ticket import (
     TicketCreate,
     TicketResponse,
@@ -23,6 +28,7 @@ from smart_helpdesk.schemas.ticket import (
 from smart_helpdesk.services import (
     assignment_service,
     execution_service,
+    resolution_service,
     routing_service,
     ticket_service,
 )
@@ -278,3 +284,43 @@ def complete_technician_work_endpoint(
         work_completed_at=assignment.work_completed_at,
         completion_note=assignment.completion_note,
     )
+
+
+@router.post(
+    "/{ticket_id}/customer-response",
+    response_model=ResolutionResponse,
+    summary="Customer Submits Resolution Response and Feedback",
+)
+def customer_response_endpoint(
+    ticket_id: uuid.UUID,
+    feedback_in: CustomerResponseRequest,
+    customer_id: uuid.UUID | None = Query(None, description="Optional customer ID verification"),
+    db: Session = Depends(get_db),
+) -> ResolutionResponse:
+    """Customer confirms whether the issue was resolved and optionally provides rating and feedback."""
+    ticket, feedback, fallback = resolution_service.process_customer_resolution_response(
+        db,
+        ticket_id=ticket_id,
+        feedback_in=feedback_in,
+        customer_id=customer_id,
+    )
+    return ResolutionResponse(
+        ticket_id=ticket.id,
+        ticket_status=ticket.status,
+        feedback=TicketFeedbackResponse.model_validate(feedback),
+        fallback=fallback,
+    )
+
+
+@router.get(
+    "/{ticket_id}/feedback-history",
+    response_model=list[TicketFeedbackResponse],
+    summary="Get Ticket Feedback History",
+)
+def get_ticket_feedback_history_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[TicketFeedbackResponse]:
+    """Retrieve all feedback submissions for this ticket across service attempts."""
+    feedbacks = resolution_service.list_ticket_feedbacks(db, ticket_id)
+    return [TicketFeedbackResponse.model_validate(f) for f in feedbacks]
