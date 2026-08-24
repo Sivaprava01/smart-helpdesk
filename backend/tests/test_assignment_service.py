@@ -8,16 +8,19 @@ from sqlalchemy.pool import StaticPool
 
 from smart_helpdesk.core.exceptions import BusinessRuleError, EntityNotFoundError
 from smart_helpdesk.db.base import Base
-from smart_helpdesk.db.enums import AssignmentStatus, TicketStatus
+from smart_helpdesk.db.enums import AssignmentStatus, DeclineReason, TicketStatus
 from smart_helpdesk.db.models.customer import Customer
 from smart_helpdesk.db.models.service_category import ServiceCategory
 from smart_helpdesk.db.models.technician import Technician
 from smart_helpdesk.db.models.technician_assignment import TechnicianAssignment
 from smart_helpdesk.db.models.ticket import Ticket
+from smart_helpdesk.schemas.assignment import DeclineRequest
 from smart_helpdesk.services.assignment_service import (
     accept_assignment,
+    decline_assignment,
     get_active_assignment_for_ticket,
     list_ticket_assignments,
+    reroute_ticket,
     start_assignment,
 )
 
@@ -219,3 +222,137 @@ def test_accept_assignment_wrong_technician_rejected(db_session: Session) -> Non
     with pytest.raises(BusinessRuleError) as exc_info:
         accept_assignment(db_session, assignment.id, technician_id=tech2.id)
     assert "Technician ID does not match" in str(exc_info.value)
+
+
+def test_decline_assignment_and_live_fallback_rerouting(db_session: Session) -> None:
+    cat = ServiceCategory(name="Plumbing", is_active=True)
+    cust = Customer(full_name="Siva", email="siva@example.com", phone_number="+1000000009")
+    db_session.add_all([cat, cust])
+    db_session.commit()
+
+    # Ravi is #1 (Tower A matching location)
+    ravi = Technician(
+        full_name="Ravi",
+        email="ravi@example.com",
+        phone_number="+1000000010",
+        is_active=True,
+        is_on_duty=True,
+        current_zone="Tower A",
+        current_workload=0,
+        max_workload=5,
+        overall_rating=Decimal("4.80"),
+        categories=[cat],
+    )
+    # Kumar is #2 (Tower D)
+    kumar = Technician(
+        full_name="Kumar",
+        email="kumar@example.com",
+        phone_number="+1000000011",
+        is_active=True,
+        is_on_duty=True,
+        current_zone="Tower D",
+        current_workload=0,
+        max_workload=5,
+        overall_rating=Decimal("4.50"),
+        categories=[cat],
+    )
+    db_session.add_all([ravi, kumar])
+    db_session.commit()
+
+    ticket = Ticket(
+        customer_id=cust.id,
+        category_id=cat.id,
+        contact_name="Siva",
+        contact_phone="+1000000009",
+        description="Washroom tap leaking",
+        location="Tower A, Flat 101",
+        status=TicketStatus.PENDING,
+    )
+    db_session.add(ticket)
+    db_session.commit()
+
+    # 1. Initial offer goes to Ravi
+    assignment1, _ = start_assignment(db_session, ticket.id)
+    assert assignment1 is not None
+    assert assignment1.technician_id == ravi.id
+
+    # 2. Ravi declines with reason BUSY
+    decline_payload = DeclineRequest(reason=DeclineReason.BUSY, note="In middle of another urgent job")
+    declined_assignment, fallback_summary = decline_assignment(
+        db_session,
+        assignment1.id,
+        decline_in=decline_payload,
+        technician_id=ravi.id,
+    )
+
+    # 3. Verify Ravi assignment is DECLINED with reason & note
+    assert declined_assignment.status == AssignmentStatus.DECLINED
+    assert declined_assignment.decline_reason == DeclineReason.BUSY.value
+    assert declined_assignment.decline_note == "In middle of another urgent job"
+
+    # 4. Verify Fallback rerouting immediately offered ticket to Kumar
+    assert fallback_summary.status == "NEW_TECHNICIAN_OFFERED"
+    assert fallback_summary.technician_id == kumar.id
+    assert fallback_summary.technician_name == "Kumar"
+
+    # 5. Verify database records: 2 assignment history rows exist, ticket is ROUTING
+    history_list = list_ticket_assignments(db_session, ticket.id)
+    assert len(history_list) == 2
+    assert history_list[0].status == AssignmentStatus.OFFERED
+    assert history_list[0].technician_id == kumar.id
+    assert history_list[1].status == AssignmentStatus.DECLINED
+    assert history_list[1].technician_id == ravi.id
+
+    # Verify neither technician had workload incremented
+    db_session.refresh(ravi)
+    db_session.refresh(kumar)
+    assert ravi.current_workload == 0
+    assert kumar.current_workload == 0
+
+
+def test_fallback_uses_live_updated_data_skips_off_duty_candidate(db_session: Session) -> None:
+    cat = ServiceCategory(name="Carpentry", is_active=True)
+    cust = Customer(full_name="Eva", email="eva@example.com", phone_number="+1000000012")
+    db_session.add_all([cat, cust])
+    db_session.commit()
+
+    # Tech 1: Highest rank initially
+    tech1 = Technician(
+        full_name="Carpenter 1", email="c1@example.com", phone_number="+1000000013",
+        is_active=True, is_on_duty=True, current_zone="Tower A", categories=[cat]
+    )
+    # Tech 2: Second highest rank initially
+    tech2 = Technician(
+        full_name="Carpenter 2", email="c2@example.com", phone_number="+1000000014",
+        is_active=True, is_on_duty=True, current_zone="Tower B", categories=[cat]
+    )
+    # Tech 3: Third rank initially
+    tech3 = Technician(
+        full_name="Carpenter 3", email="c3@example.com", phone_number="+1000000015",
+        is_active=True, is_on_duty=True, current_zone="Tower C", categories=[cat]
+    )
+    db_session.add_all([tech1, tech2, tech3])
+    db_session.commit()
+
+    ticket = Ticket(
+        customer_id=cust.id, category_id=cat.id, contact_name="Eva",
+        contact_phone="+1000000012", description="Broken chair", location="Tower A"
+    )
+    db_session.add(ticket)
+    db_session.commit()
+
+    # Offer to Tech 1
+    assignment1, _ = start_assignment(db_session, ticket.id)
+    assert assignment1.technician_id == tech1.id
+
+    # While Tech 1 is considering, Tech 2 goes OFF DUTY!
+    tech2.is_on_duty = False
+    db_session.commit()
+
+    # Tech 1 declines
+    _, fallback_summary = decline_assignment(db_session, assignment1.id)
+
+    # Fallback should pick Tech 3 (since Tech 2 is now off duty in live data!)
+    assert fallback_summary.status == "NEW_TECHNICIAN_OFFERED"
+    assert fallback_summary.technician_id == tech3.id
+    assert fallback_summary.technician_name == "Carpenter 3"
