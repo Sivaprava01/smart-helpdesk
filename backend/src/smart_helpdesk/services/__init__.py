@@ -6,6 +6,9 @@ from smart_helpdesk.services.customer_service import (
     list_customers,
     update_customer,
 )
+from smart_helpdesk.services.routing_service import (
+    evaluate_ticket_routing,
+)
 from smart_helpdesk.services.service_category_service import (
     create_category,
     get_category,
@@ -33,6 +36,7 @@ __all__ = [
     "create_customer",
     "create_technician",
     "create_ticket",
+    "evaluate_ticket_routing",
     "get_category",
     "get_customer",
     "get_technician",
