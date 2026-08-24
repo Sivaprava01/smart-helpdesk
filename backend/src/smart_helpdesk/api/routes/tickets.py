@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 
 from smart_helpdesk.db.enums import TicketStatus
 from smart_helpdesk.db.session import get_db
+from smart_helpdesk.routing.schemas import RoutingPreviewResponse
 from smart_helpdesk.schemas.ticket import (
     TicketCreate,
     TicketResponse,
     TicketStatusResponse,
     TicketUpdate,
 )
-from smart_helpdesk.services import ticket_service
+from smart_helpdesk.services import routing_service, ticket_service
 
 router = APIRouter()
 
@@ -106,3 +107,29 @@ def cancel_ticket_endpoint(
 ) -> TicketResponse:
     """Cancel a pending service ticket safely preserving historical records."""
     return ticket_service.cancel_ticket(db, ticket_id)
+
+
+@router.post(
+    "/{ticket_id}/routing-preview",
+    response_model=RoutingPreviewResponse,
+    summary="Preview Ticket Routing (POST)",
+)
+def preview_ticket_routing_post_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> RoutingPreviewResponse:
+    """Evaluate and preview deterministic technician eligibility and ranking for a ticket without side-effects."""
+    return routing_service.evaluate_ticket_routing(db, ticket_id)
+
+
+@router.get(
+    "/{ticket_id}/routing-preview",
+    response_model=RoutingPreviewResponse,
+    summary="Preview Ticket Routing (GET)",
+)
+def preview_ticket_routing_get_endpoint(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> RoutingPreviewResponse:
+    """Evaluate and preview deterministic technician eligibility and ranking for a ticket (idempotent read)."""
+    return routing_service.evaluate_ticket_routing(db, ticket_id)

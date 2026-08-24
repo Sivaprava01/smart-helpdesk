@@ -13,6 +13,7 @@ class TechnicianBase(BaseModel):
     email: EmailStr = Field(..., description="Unique email address")
     phone_number: str = Field(..., min_length=5, max_length=50, description="Unique contact phone number")
     is_on_duty: bool = Field(False, description="Whether the technician is currently available for work")
+    current_zone: str | None = Field(None, max_length=100, description="Current residential or service zone (e.g. Tower A)")
     max_workload: int = Field(5, ge=1, le=50, description="Maximum concurrent active jobs permitted")
 
 
@@ -32,6 +33,7 @@ class TechnicianUpdate(BaseModel):
     phone_number: str | None = Field(None, min_length=5, max_length=50)
     is_active: bool | None = None
     is_on_duty: bool | None = None
+    current_zone: str | None = Field(None, max_length=100)
     max_workload: int | None = Field(None, ge=1, le=50)
     category_ids: list[uuid.UUID] | None = Field(
         None,

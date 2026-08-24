@@ -43,6 +43,7 @@ def create_technician(db: Session, technician_in: TechnicianCreate) -> Technicia
         phone_number=technician_in.phone_number,
         is_active=True,
         is_on_duty=technician_in.is_on_duty,
+        current_zone=technician_in.current_zone,
         max_workload=technician_in.max_workload,
         current_workload=0,
         overall_rating=None,
@@ -69,15 +70,18 @@ def list_technicians(
     is_active: bool | None = None,
     is_on_duty: bool | None = None,
     category_id: uuid.UUID | None = None,
+    current_zone: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[Technician]:
-    """Retrieves technicians with optional status and category filters."""
+    """Retrieves technicians with optional status, category, and zone filters."""
     query = select(Technician).distinct()
     if is_active is not None:
         query = query.where(Technician.is_active == is_active)
     if is_on_duty is not None:
         query = query.where(Technician.is_on_duty == is_on_duty)
+    if current_zone is not None:
+        query = query.where(Technician.current_zone == current_zone)
     if category_id is not None:
         query = query.join(Technician.categories).where(ServiceCategory.id == category_id)
 
