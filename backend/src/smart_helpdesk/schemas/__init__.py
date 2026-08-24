@@ -1,14 +1,19 @@
-"""Pydantic schemas package for request validation and API responses."""
+"""Pydantic schemas package for API request validation and response serialization."""
 
+from smart_helpdesk.schemas.assignment import (
+    AssignmentActionResponse,
+    AssignmentResponse,
+    DeclineRequest,
+    ExpiredProcessingResponse,
+    FallbackSummary,
+)
 from smart_helpdesk.schemas.customer import (
-    CustomerBase,
     CustomerBriefResponse,
     CustomerCreate,
     CustomerResponse,
     CustomerUpdate,
 )
 from smart_helpdesk.schemas.service_category import (
-    ServiceCategoryBase,
     ServiceCategoryBriefResponse,
     ServiceCategoryCreate,
     ServiceCategoryResponse,
@@ -28,12 +33,15 @@ from smart_helpdesk.schemas.ticket import (
 )
 
 __all__ = [
-    "CustomerBase",
+    "AssignmentActionResponse",
+    "AssignmentResponse",
     "CustomerBriefResponse",
     "CustomerCreate",
     "CustomerResponse",
     "CustomerUpdate",
-    "ServiceCategoryBase",
+    "DeclineRequest",
+    "ExpiredProcessingResponse",
+    "FallbackSummary",
     "ServiceCategoryBriefResponse",
     "ServiceCategoryCreate",
     "ServiceCategoryResponse",
