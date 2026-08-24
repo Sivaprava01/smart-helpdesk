@@ -11,7 +11,11 @@ from smart_helpdesk.db.models.technician_assignment import TechnicianAssignment
 from smart_helpdesk.db.models.ticket import Ticket
 from smart_helpdesk.routing.eligibility import filter_eligible_technicians
 from smart_helpdesk.routing.ranking import rank_eligible_technicians
-from smart_helpdesk.schemas.assignment import DeclineRequest, FallbackSummary
+from smart_helpdesk.schemas.assignment import (
+    DeclineRequest,
+    ExpiredProcessingResponse,
+    FallbackSummary,
+)
 from smart_helpdesk.services.routing_service import evaluate_ticket_routing
 
 # Centralized response timeout window
@@ -160,6 +164,47 @@ def accept_assignment(
     return assignment
 
 
+def defer_assignment(
+    db: Session,
+    assignment_id: uuid.UUID,
+    technician_id: uuid.UUID | None = None,
+) -> TechnicianAssignment:
+    """Defers an assignment decision (Ask me later) preserving the original response deadline."""
+    assignment = db.get(TechnicianAssignment, assignment_id)
+    if not assignment:
+        raise EntityNotFoundError(f"Assignment with id '{assignment_id}' not found")
+
+    if technician_id is not None and assignment.technician_id != technician_id:
+        raise BusinessRuleError("Technician ID does not match assignment offer recipient")
+
+    if assignment.status == AssignmentStatus.DEFERRED:
+        raise BusinessRuleError("Assignment offer has already been deferred")
+
+    if assignment.status != AssignmentStatus.OFFERED:
+        raise BusinessRuleError(f"Cannot defer assignment in '{assignment.status.value}' status")
+
+    # Validate deadline has not passed
+    now = datetime.now(timezone.utc)
+    if assignment.expires_at:
+        expires_time = (
+            assignment.expires_at
+            if assignment.expires_at.tzinfo is not None
+            else assignment.expires_at.replace(tzinfo=timezone.utc)
+        )
+        if expires_time <= now:
+            assignment.status = AssignmentStatus.EXPIRED
+            db.commit()
+            raise BusinessRuleError("Assignment offer has expired and cannot be deferred")
+
+    assignment.status = AssignmentStatus.DEFERRED
+    assignment.deferred_at = now
+    assignment.responded_at = now
+
+    db.commit()
+    db.refresh(assignment)
+    return assignment
+
+
 def reroute_ticket(
     db: Session,
     ticket_id: uuid.UUID,
@@ -286,3 +331,60 @@ def decline_assignment(
     db.refresh(assignment)
 
     return assignment, fallback_summary
+
+
+def process_expired_assignments(db: Session) -> ExpiredProcessingResponse:
+    """Finds all offered or deferred assignments past their deadline, expires them, and reroutes tickets."""
+    now = datetime.now(timezone.utc)
+
+    # Query active assignments
+    active_assignments = list(
+        db.execute(
+            select(TechnicianAssignment).where(
+                TechnicianAssignment.status.in_([AssignmentStatus.OFFERED, AssignmentStatus.DEFERRED]),
+                TechnicianAssignment.expires_at.isnot(None),
+            )
+        ).scalars().all()
+    )
+
+    expired_count = 0
+    rerouted_count = 0
+    unassigned_count = 0
+    details: list[dict[str, object]] = []
+
+    for assignment in active_assignments:
+        expires_time = (
+            assignment.expires_at
+            if assignment.expires_at.tzinfo is not None
+            else assignment.expires_at.replace(tzinfo=timezone.utc)
+        )
+        if expires_time <= now:
+            # Mark expired
+            assignment.status = AssignmentStatus.EXPIRED
+            db.flush()
+            expired_count += 1
+
+            # Reroute affected ticket
+            new_offer, fallback_summary = reroute_ticket(db, assignment.ticket_id)
+            if fallback_summary.status == "NEW_TECHNICIAN_OFFERED":
+                rerouted_count += 1
+            else:
+                unassigned_count += 1
+
+            details.append(
+                {
+                    "ticket_id": str(assignment.ticket_id),
+                    "expired_assignment_id": str(assignment.id),
+                    "expired_technician_id": str(assignment.technician_id),
+                    "fallback_status": fallback_summary.status,
+                    "new_assignment_id": str(new_offer.id) if new_offer else None,
+                }
+            )
+
+    db.commit()
+    return ExpiredProcessingResponse(
+        expired_count=expired_count,
+        rerouted_count=rerouted_count,
+        unassigned_count=unassigned_count,
+        details=details,
+    )

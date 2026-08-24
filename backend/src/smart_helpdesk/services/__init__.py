@@ -3,8 +3,10 @@
 from smart_helpdesk.services.assignment_service import (
     accept_assignment,
     decline_assignment,
+    defer_assignment,
     get_active_assignment_for_ticket,
     list_ticket_assignments,
+    process_expired_assignments,
     reroute_ticket,
     start_assignment,
 )
@@ -46,6 +48,7 @@ __all__ = [
     "create_technician",
     "create_ticket",
     "decline_assignment",
+    "defer_assignment",
     "evaluate_ticket_routing",
     "get_active_assignment_for_ticket",
     "get_category",
@@ -58,6 +61,7 @@ __all__ = [
     "list_technicians",
     "list_ticket_assignments",
     "list_tickets",
+    "process_expired_assignments",
     "reroute_ticket",
     "start_assignment",
     "update_category",

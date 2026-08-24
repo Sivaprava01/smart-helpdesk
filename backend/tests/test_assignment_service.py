@@ -18,8 +18,10 @@ from smart_helpdesk.schemas.assignment import DeclineRequest
 from smart_helpdesk.services.assignment_service import (
     accept_assignment,
     decline_assignment,
+    defer_assignment,
     get_active_assignment_for_ticket,
     list_ticket_assignments,
+    process_expired_assignments,
     reroute_ticket,
     start_assignment,
 )
@@ -356,3 +358,90 @@ def test_fallback_uses_live_updated_data_skips_off_duty_candidate(db_session: Se
     assert fallback_summary.status == "NEW_TECHNICIAN_OFFERED"
     assert fallback_summary.technician_id == tech3.id
     assert fallback_summary.technician_name == "Carpenter 3"
+
+
+def test_defer_assignment_ask_later_workflow(db_session: Session) -> None:
+    cat = ServiceCategory(name="Appliance", is_active=True)
+    cust = Customer(full_name="Frank", email="frank@example.com", phone_number="+1000000016")
+    tech = Technician(
+        full_name="Appliance Guy", email="app@example.com", phone_number="+1000000017",
+        is_active=True, is_on_duty=True, categories=[cat]
+    )
+    db_session.add_all([cat, cust, tech])
+    db_session.commit()
+
+    ticket = Ticket(
+        customer_id=cust.id, category_id=cat.id, contact_name="Frank",
+        contact_phone="+1000000016", description="Microwave issue", location="Tower E"
+    )
+    db_session.add(ticket)
+    db_session.commit()
+
+    assignment, _ = start_assignment(db_session, ticket.id)
+    orig_deadline = assignment.expires_at
+
+    # 1. Ask later
+    deferred = defer_assignment(db_session, assignment.id, technician_id=tech.id)
+    assert deferred.status == AssignmentStatus.DEFERRED
+    assert deferred.deferred_at is not None
+    assert deferred.expires_at == orig_deadline  # Original deadline preserved
+
+    # 2. Deferring again fails
+    with pytest.raises(BusinessRuleError) as exc_info:
+        defer_assignment(db_session, assignment.id)
+    assert "already been deferred" in str(exc_info.value)
+
+    # 3. Technician can still accept while deferred before deadline
+    accepted = accept_assignment(db_session, assignment.id, technician_id=tech.id)
+    assert accepted.status == AssignmentStatus.ACCEPTED
+    db_session.refresh(ticket)
+    assert ticket.status == TicketStatus.ASSIGNED
+
+
+def test_process_expired_assignments_and_fallback(db_session: Session) -> None:
+    cat = ServiceCategory(name="Painting", is_active=True)
+    cust = Customer(full_name="Grace", email="grace@example.com", phone_number="+1000000018")
+    tech1 = Technician(
+        full_name="Painter 1", email="p1@example.com", phone_number="+1000000019",
+        is_active=True, is_on_duty=True, current_zone="Tower A", categories=[cat]
+    )
+    tech2 = Technician(
+        full_name="Painter 2", email="p2@example.com", phone_number="+1000000020",
+        is_active=True, is_on_duty=True, current_zone="Tower B", categories=[cat]
+    )
+    db_session.add_all([cat, cust, tech1, tech2])
+    db_session.commit()
+
+    ticket = Ticket(
+        customer_id=cust.id, category_id=cat.id, contact_name="Grace",
+        contact_phone="+1000000018", description="Wall paint touch up", location="Tower A"
+    )
+    db_session.add(ticket)
+    db_session.commit()
+
+    # Expired offer for tech1
+    past_time = datetime.now(timezone.utc) - timedelta(minutes=15)
+    expired_assignment = TechnicianAssignment(
+        ticket_id=ticket.id,
+        technician_id=tech1.id,
+        status=AssignmentStatus.OFFERED,
+        expires_at=past_time,
+    )
+    ticket.status = TicketStatus.ROUTING
+    db_session.add(expired_assignment)
+    db_session.commit()
+
+    # Run timeout processor
+    proc_res = process_expired_assignments(db_session)
+    assert proc_res.expired_count == 1
+    assert proc_res.rerouted_count == 1
+
+    # Verify old assignment is EXPIRED
+    db_session.refresh(expired_assignment)
+    assert expired_assignment.status == AssignmentStatus.EXPIRED
+
+    # Verify new assignment exists for Painter 2
+    assignments = list_ticket_assignments(db_session, ticket.id)
+    assert len(assignments) == 2
+    assert assignments[0].status == AssignmentStatus.OFFERED
+    assert assignments[0].technician_id == tech2.id
