@@ -66,24 +66,16 @@ Current structure is approximately:
 
 smart-helpdesk/
 │
-├── .git/
-├── .venv/
-├── src/
-│   └── smart_helpdesk/
-│       ├── __init__.py
-│       ├── main.py
-│       │
-│       └── api/
-│           ├── __init__.py
-│           │
-│           └── routes/
-│               ├── __init__.py
-│               └── health.py
+├── backend/
+│   ├── .venv/
+│   ├── phases/
+│   │   └── backend/
+│   └── src/
+│       └── smart_helpdesk/
+│           └── api/
+│               └── routes/
 │
-├── .python-version
-├── pyproject.toml
-├── uv.lock
-└── README.md
+└── frontend/
 
 The project uses:
 
