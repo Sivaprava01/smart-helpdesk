@@ -44,3 +44,15 @@ On the `/login` screen (recreated from Stitch `0307e6bc7f9f4be280b97c8048d0a93d`
 - `[ 🏠 Resident ]` $\rightarrow$ fills `resident.alice@smarthelpdesk.com` / `ResidentPass123!`
 
 *Security Note:* The preset buttons only populate the form fields. Submitting the form performs authentic backend authentication with real JWT token issuance.
+
+
+---------------------
+
+
+
+  ROLE        EMAIL                          PASSWORD
+------------------------------------------------------------------
+  ADMIN       admin@smarthelpdesk.com        AdminPass123!
+  DISPATCHER  dispatcher@smarthelpdesk.com   DispatchPass123!
+  TECHNICIAN  tech.ravi@smarthelpdesk.com    TechPass123!
+  CUSTOMER    resident.alice@smarthelpdesk.com ResidentPass123!
