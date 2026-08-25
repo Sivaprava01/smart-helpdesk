@@ -1,6 +1,15 @@
 from enum import Enum
 
 
+class UserRole(str, Enum):
+    """Roles for platform users and access control."""
+
+    ADMIN = "ADMIN"
+    DISPATCHER = "DISPATCHER"
+    TECHNICIAN = "TECHNICIAN"
+    CUSTOMER = "CUSTOMER"
+
+
 class TicketStatus(str, Enum):
     """Lifecycle statuses for a service ticket."""
 
