@@ -152,36 +152,38 @@ export default function LoginPage() {
             <p className="text-secondary small mb-0">Sign in to your operational workspace</p>
           </div>
 
-          {/* Role Fast-Switcher Demo Tabs (Matches Stitch 0307e6bc...) */}
-          <div className="p-1 bg-surface-container-low rounded-3 border border-outline-variant mb-4">
-            <div className="text-center font-label text-secondary py-1" style={{ fontSize: '10px' }}>
-              DEMO FAST-SWITCHER (CLICK TO AUTO-FILL CREDENTIALS)
+          {/* Role Fast-Switcher Demo Tabs (Dev Mode Only - Automatically omitted in Production) */}
+          {import.meta.env.DEV && (
+            <div className="p-1 bg-surface-container-low rounded-3 border border-outline-variant mb-4">
+              <div className="text-center font-label text-secondary py-1" style={{ fontSize: '10px' }}>
+                DEMO FAST-SWITCHER (CLICK TO AUTO-FILL CREDENTIALS)
+              </div>
+              <div className="row g-1">
+                {presets.map((preset) => {
+                  const isSelected = activePreset === preset.role || email === preset.email;
+                  return (
+                    <div key={preset.role} className="col-6 col-sm-3">
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-100 py-1 px-1 text-center font-label d-flex flex-column align-items-center justify-content-center ${
+                          isSelected
+                            ? 'bg-primary text-white fw-bold shadow-sm'
+                            : 'btn-link text-secondary text-decoration-none hover-bg'
+                        }`}
+                        style={{ fontSize: '10px', borderRadius: 'var(--radius-md)' }}
+                        onClick={() => handleSelectPreset(preset)}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                          {preset.icon}
+                        </span>
+                        <span>{preset.label}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="row g-1">
-              {presets.map((preset) => {
-                const isSelected = activePreset === preset.role || email === preset.email;
-                return (
-                  <div key={preset.role} className="col-6 col-sm-3">
-                    <button
-                      type="button"
-                      className={`btn btn-sm w-100 py-1 px-1 text-center font-label d-flex flex-column align-items-center justify-content-center ${
-                        isSelected
-                          ? 'bg-primary text-white fw-bold shadow-sm'
-                          : 'btn-link text-secondary text-decoration-none hover-bg'
-                      }`}
-                      style={{ fontSize: '10px', borderRadius: 'var(--radius-md)' }}
-                      onClick={() => handleSelectPreset(preset)}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                        {preset.icon}
-                      </span>
-                      <span>{preset.label}</span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
 
           {/* Error Alert */}
           {error && (
