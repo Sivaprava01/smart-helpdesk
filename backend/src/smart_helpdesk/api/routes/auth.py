@@ -5,6 +5,8 @@ from smart_helpdesk.api.dependencies import get_current_user
 from smart_helpdesk.db.models.user import User
 from smart_helpdesk.db.session import get_db
 from smart_helpdesk.schemas.auth import (
+    OAuthCallbackRequest,
+    OAuthUrlResponse,
     RefreshTokenRequest,
     TokenResponse,
     UserLoginRequest,
@@ -88,3 +90,36 @@ def logout(
 ) -> dict[str, str]:
     """Logs out current user session."""
     return {"message": "Logged out successfully"}
+
+
+@router.get(
+    "/oauth/google/url",
+    response_model=OAuthUrlResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Google OAuth authorization URL",
+    description="Returns the Google OAuth consent URL for frontend redirection.",
+)
+def get_google_oauth_url() -> OAuthUrlResponse:
+    """Generates the Google OAuth2 consent URL."""
+    url = AuthService.get_google_auth_url()
+    return OAuthUrlResponse(authorization_url=url, provider="google")
+
+
+@router.post(
+    "/oauth/google/callback",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Process Google OAuth callback",
+    description="Exchanges Google auth code or ID token credential, creates or links account, and returns JWT tokens.",
+)
+def google_oauth_callback(
+    data: OAuthCallbackRequest,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    """Processes Google OAuth callback and returns JWT session tokens."""
+    return AuthService.process_google_oauth_callback(
+        db=db,
+        code=data.code,
+        credential=data.credential,
+        redirect_uri=data.redirect_uri,
+    )

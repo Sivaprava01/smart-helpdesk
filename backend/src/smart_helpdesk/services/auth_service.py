@@ -1,4 +1,6 @@
 import uuid
+from urllib.parse import urlencode
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -219,3 +221,96 @@ class AuthService:
         db.commit()
         db.refresh(user)
         return user
+
+    @staticmethod
+    def get_google_auth_url() -> str:
+        """Generates the Google OAuth2 consent URL."""
+        settings = get_settings()
+        client_id = settings.GOOGLE_CLIENT_ID or "google-client-id-placeholder"
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+
+        params = {
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "consent",
+        }
+        return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+    @staticmethod
+    def process_google_oauth_callback(
+        db: Session,
+        code: str | None = None,
+        credential: str | None = None,
+        redirect_uri: str | None = None,
+    ) -> TokenResponse:
+        """Processes Google OAuth callback with auth code or ID token credential."""
+        settings = get_settings()
+
+        email = None
+        google_id = None
+        name = None
+
+        if code:
+            token_url = "https://oauth2.googleapis.com/token"
+            data = {
+                "code": code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": redirect_uri or settings.GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            }
+            try:
+                with httpx.Client(timeout=10.0) as client:
+                    token_res = client.post(token_url, data=data)
+                    token_data = token_res.json()
+
+                    if "access_token" in token_data:
+                        userinfo_res = client.get(
+                            "https://www.googleapis.com/oauth2/v3/userinfo",
+                            headers={"Authorization": f"Bearer {token_data['access_token']}"},
+                        )
+                        userinfo = userinfo_res.json()
+                        email = userinfo.get("email")
+                        google_id = userinfo.get("sub")
+                        name = userinfo.get("name")
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Google OAuth token exchange failed: {str(e)}",
+                )
+
+        elif credential:
+            # Google Identity One-Tap / GSI ID Token
+            try:
+                with httpx.Client(timeout=10.0) as client:
+                    verify_res = client.get(
+                        f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
+                    )
+                    userinfo = verify_res.json()
+                    email = userinfo.get("email")
+                    google_id = userinfo.get("sub")
+                    name = userinfo.get("name")
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Google credential verification failed: {str(e)}",
+                )
+
+        if not email or not google_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unable to extract verified email or subject identifier from Google OAuth response.",
+            )
+
+        user = AuthService.create_or_link_oauth_user(
+            db=db,
+            email=email,
+            oauth_provider="google",
+            oauth_id=google_id,
+            full_name=name,
+        )
+
+        return AuthService.generate_token_response(user)
