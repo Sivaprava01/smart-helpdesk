@@ -1,0 +1,336 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import './variables.css';
+
+/* Global Resets & Typography */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, .font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-headline {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.font-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Material Symbols Icon helper */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.material-symbols-outlined.fill-1 {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Layout Utilities */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  padding: var(--space-md) var(--space-sm);
+  transition: transform 0.2s ease-in-out;
+}
+
+.app-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.app-header {
+  height: var(--header-height);
+  background-color: var(--color-surface-container-lowest);
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xl);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--space-xl);
+  max-width: 1400px;
+  width: 100%;
+}
+
+/* Navigation Links */
+.nav-item-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.15s ease-in-out;
+  margin-bottom: 4px;
+}
+
+.nav-item-link:hover {
+  background-color: var(--color-surface-container-high);
+  color: var(--color-primary);
+}
+
+.nav-item-link.active {
+  background-color: var(--color-surface-container-highest);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Card Container */
+.sh-card {
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease;
+}
+
+.sh-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.sh-card-elevated {
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* Button Overrides */
+.btn-sh-primary {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary);
+  border: none;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-sh-primary:hover, .btn-sh-primary:focus {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-subtle);
+}
+
+.btn-sh-secondary {
+  background-color: transparent;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-sh-secondary:hover {
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  border-color: var(--color-outline);
+}
+
+.btn-sh-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-sh-danger:hover {
+  background-color: #fca5a5;
+  color: #7f1d1d;
+}
+
+/* Status Chips / Badges */
+.sh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.sh-badge-pending {
+  background-color: var(--color-status-pending-bg);
+  color: var(--color-status-pending-text);
+  border-color: var(--color-status-pending-border);
+}
+
+.sh-badge-routing {
+  background-color: var(--color-status-routing-bg);
+  color: var(--color-status-routing-text);
+  border-color: var(--color-status-routing-border);
+}
+
+.sh-badge-assigned {
+  background-color: var(--color-status-assigned-bg);
+  color: var(--color-status-assigned-text);
+  border-color: var(--color-status-assigned-border);
+}
+
+.sh-badge-arrived {
+  background-color: var(--color-status-arrived-bg);
+  color: var(--color-status-arrived-text);
+  border-color: var(--color-status-arrived-border);
+}
+
+.sh-badge-inprogress {
+  background-color: var(--color-status-inprogress-bg);
+  color: var(--color-status-inprogress-text);
+  border-color: var(--color-status-inprogress-border);
+}
+
+.sh-badge-confirmation {
+  background-color: var(--color-status-confirmation-bg);
+  color: var(--color-status-confirmation-text);
+  border-color: var(--color-status-confirmation-border);
+}
+
+.sh-badge-closed {
+  background-color: var(--color-status-closed-bg);
+  color: var(--color-status-closed-text);
+  border-color: var(--color-status-closed-border);
+}
+
+.sh-badge-reopened {
+  background-color: var(--color-status-reopened-bg);
+  color: var(--color-status-reopened-text);
+  border-color: var(--color-status-reopened-border);
+}
+
+.sh-badge-cancelled {
+  background-color: var(--color-status-cancelled-bg);
+  color: var(--color-status-cancelled-text);
+  border-color: var(--color-status-cancelled-border);
+}
+
+/* Duty Toggle Switch */
+.duty-switch {
+  cursor: pointer;
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-pulse {
+  0% {
+    background-color: rgba(203, 219, 245, 0.4);
+  }
+  50% {
+    background-color: rgba(203, 219, 245, 0.8);
+  }
+  100% {
+    background-color: rgba(203, 219, 245, 0.4);
+  }
+}
+
+.skeleton-box {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* Responsive Mobile Navigation */
+@media (max-width: 768px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-modal);
+  }
+
+  .app-main {
+    margin-left: 0;
+  }
+
+  .app-content {
+    padding: var(--space-md);
+  }
+}
