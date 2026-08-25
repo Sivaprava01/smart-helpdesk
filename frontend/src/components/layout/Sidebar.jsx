@@ -6,12 +6,13 @@ export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const userRole = user?.role || 'CUSTOMER';
 
-  // Role-based navigation filtering
+  // Role-based navigation items
   const allNavItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['ADMIN', 'DISPATCHER'] },
-    { path: '/tickets', label: userRole === 'CUSTOMER' ? 'My Tickets' : 'Tickets', icon: 'confirmation_number', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN', 'CUSTOMER'] },
-    { path: '/technician/jobs', label: 'My Jobs', icon: 'assignment_ind', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN'] },
-    { path: '/technicians', label: 'Technicians', icon: 'engineering', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/dashboard', label: 'Operations Dashboard', icon: 'dashboard', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/tickets', label: userRole === 'CUSTOMER' ? 'My Tickets' : 'Ticket Hub', icon: 'confirmation_number', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN', 'CUSTOMER'] },
+    { path: '/tickets/new', label: 'Request Service', icon: 'add_circle', roles: ['CUSTOMER'] },
+    { path: '/technician/jobs', label: 'My Field Jobs', icon: 'assignment_ind', roles: ['ADMIN', 'TECHNICIAN'] },
+    { path: '/technicians', label: 'Technician Capacity', icon: 'engineering', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/routing', label: 'Routing Engine', icon: 'route', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/customers', label: 'Resident Directory', icon: 'groups', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/categories', label: 'Service Categories', icon: 'category', roles: ['ADMIN', 'DISPATCHER'] },
