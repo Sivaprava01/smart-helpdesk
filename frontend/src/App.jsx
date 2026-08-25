@@ -11,7 +11,13 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
-// Authenticated Operations Pages (Phase 1)
+// Authenticated Phase 2 Pages (Dashboard & Tickets)
+import DashboardPage from './pages/dashboard/DashboardPage';
+import TicketListPage from './pages/tickets/TicketListPage';
+import CreateTicketPage from './pages/tickets/CreateTicketPage';
+import TicketDetailPage from './pages/tickets/TicketDetailPage';
+
+// Authenticated Phase 1 Pages (Entities & Capacities)
 import TechnicianCapacityPage from './pages/technicians/TechnicianCapacityPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import CustomersPage from './pages/customers/CustomersPage';
@@ -50,7 +56,13 @@ export default function App() {
             {/* Protected Application Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                {/* Admin & Dispatcher Operations */}
+                {/* Phase 2: Operations Dashboard & Ticket Lifecycle */}
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/tickets" element={<TicketListPage />} />
+                <Route path="/tickets/new" element={<CreateTicketPage />} />
+                <Route path="/tickets/:id" element={<TicketDetailPage />} />
+
+                {/* Phase 1: Admin & Dispatcher Master Entities */}
                 <Route
                   path="/technicians"
                   element={
@@ -76,33 +88,13 @@ export default function App() {
                   }
                 />
 
-                {/* Dashboard & Tickets (All Roles) */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <PhasePlaceholder
-                      title="Operations Dashboard"
-                      description="Real-time KPI metrics, active service queue, and team availability."
-                      nextPhase="Phase 2"
-                    />
-                  }
-                />
-                <Route
-                  path="/tickets"
-                  element={
-                    <PhasePlaceholder
-                      title="Ticket Management Hub"
-                      description="Searchable ticket data table with multi-factor filters and status tracking."
-                      nextPhase="Phase 2"
-                    />
-                  }
-                />
+                {/* Upcoming Phases */}
                 <Route
                   path="/technician/jobs"
                   element={
                     <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER', 'TECHNICIAN']}>
                       <PhasePlaceholder
-                        title="Technician Portal ('My Jobs')"
+                        title="Technician Field Portal ('My Jobs')"
                         description="Active assignment offers with live countdown timers and field execution workflow."
                         nextPhase="Phase 4"
                       />
