@@ -13,6 +13,7 @@ from smart_helpdesk.db.models.technician import Technician
 from smart_helpdesk.db.models.technician_assignment import TechnicianAssignment
 from smart_helpdesk.db.models.ticket import Ticket
 from smart_helpdesk.db.models.ticket_feedback import TicketFeedback
+from smart_helpdesk.db.models.user import User
 
 __all__ = [
     "Base",
@@ -26,5 +27,6 @@ __all__ = [
     "TicketFeedback",
     "TimestampMixin",
     "UUIDMixin",
+    "User",
     "technician_service_categories",
 ]

@@ -10,6 +10,7 @@ from smart_helpdesk.services.assignment_service import (
     reroute_ticket,
     start_assignment,
 )
+from smart_helpdesk.services.auth_service import AuthService
 from smart_helpdesk.services.customer_service import (
     create_customer,
     get_customer,
@@ -55,6 +56,7 @@ from smart_helpdesk.services.ticket_service import (
 )
 
 __all__ = [
+    "AuthService",
     "accept_assignment",
     "cancel_ticket",
     "complete_technician_work",
