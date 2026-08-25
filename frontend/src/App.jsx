@@ -11,11 +11,14 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
-// Authenticated Operations Pages
+// Authenticated Operations Pages (Phase 2 & Phase 3)
 import DashboardPage from './pages/dashboard/DashboardPage';
 import TicketListPage from './pages/tickets/TicketListPage';
 import CreateTicketPage from './pages/tickets/CreateTicketPage';
 import TicketDetailPage from './pages/tickets/TicketDetailPage';
+import RoutingMonitorPage from './pages/routing/RoutingMonitorPage';
+
+// Authenticated Operations Pages (Phase 1)
 import TechnicianCapacityPage from './pages/technicians/TechnicianCapacityPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import CustomersPage from './pages/customers/CustomersPage';
@@ -69,6 +72,16 @@ export default function App() {
                 <Route path="/tickets/new" element={<CreateTicketPage />} />
                 <Route path="/tickets/:id" element={<TicketDetailPage />} />
 
+                {/* Phase 3: Routing Engine & Fallback Monitor (Admin & Dispatcher) */}
+                <Route
+                  path="/routing"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER']}>
+                      <RoutingMonitorPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Admin & Dispatcher Master Entities */}
                 <Route
                   path="/technicians"
@@ -91,18 +104,6 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER']}>
                       <CustomersPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/routing"
-                  element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER']}>
-                      <PhasePlaceholder
-                        title="Routing & Fallback Monitor"
-                        description="Deterministic routing preview, scoring simulator, and expired offer timeout processing."
-                        nextPhase="Phase 3"
-                      />
                     </ProtectedRoute>
                   }
                 />
