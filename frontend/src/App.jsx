@@ -18,29 +18,13 @@ import CreateTicketPage from './pages/tickets/CreateTicketPage';
 import TicketDetailPage from './pages/tickets/TicketDetailPage';
 import RoutingMonitorPage from './pages/routing/RoutingMonitorPage';
 
+// Authenticated Specialist Pages (Phase 4)
+import TechnicianPortalPage from './pages/technician/TechnicianPortalPage';
+
 // Authenticated Operations Pages (Phase 1)
 import TechnicianCapacityPage from './pages/technicians/TechnicianCapacityPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import CustomersPage from './pages/customers/CustomersPage';
-
-// Placeholder for upcoming phases
-import EmptyState from './components/common/EmptyState';
-
-function PhasePlaceholder({ title, description, nextPhase }) {
-  return (
-    <div className="py-4">
-      <div className="sh-card bg-white p-4">
-        <h2 className="h4 font-headline text-on-surface mb-2">{title}</h2>
-        <p className="text-secondary mb-4">{description}</p>
-        <EmptyState
-          icon="construction"
-          title={`Scheduled for ${nextPhase}`}
-          description="This workflow is scheduled in the phased implementation plan and will be connected to live backend APIs in the upcoming phase."
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function App() {
   return (
@@ -82,6 +66,16 @@ export default function App() {
                   }
                 />
 
+                {/* Phase 4: Technician Field Portal ('My Jobs') */}
+                <Route
+                  path="/technician/jobs"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER', 'TECHNICIAN']}>
+                      <TechnicianPortalPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Admin & Dispatcher Master Entities */}
                 <Route
                   path="/technicians"
@@ -104,20 +98,6 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER']}>
                       <CustomersPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Technician Portal (Field Specialists & Admin) */}
-                <Route
-                  path="/technician/jobs"
-                  element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'TECHNICIAN']}>
-                      <PhasePlaceholder
-                        title="Technician Field Portal ('My Jobs')"
-                        description="Active assignment offers with live countdown timers and field execution workflow."
-                        nextPhase="Phase 4"
-                      />
                     </ProtectedRoute>
                   }
                 />
