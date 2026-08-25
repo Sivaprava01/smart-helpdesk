@@ -1,19 +1,29 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { usePersona } from '../../context/PersonaContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { currentPersona, setPersona, PERSONAS } = usePersona();
+  const { user, logout } = useAuth();
+  const userRole = user?.role || 'CUSTOMER';
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/tickets', label: 'Tickets', icon: 'confirmation_number' },
-    { path: '/technician/jobs', label: 'My Jobs', icon: 'assignment_ind' },
-    { path: '/technicians', label: 'Technicians', icon: 'engineering' },
-    { path: '/routing', label: 'Routing', icon: 'route' },
-    { path: '/customers', label: 'Customers', icon: 'groups' },
-    { path: '/categories', label: 'Service Categories', icon: 'category' },
+  // Role-based navigation filtering
+  const allNavItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/tickets', label: userRole === 'CUSTOMER' ? 'My Tickets' : 'Tickets', icon: 'confirmation_number', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN', 'CUSTOMER'] },
+    { path: '/technician/jobs', label: 'My Jobs', icon: 'assignment_ind', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN'] },
+    { path: '/technicians', label: 'Technicians', icon: 'engineering', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/routing', label: 'Routing Engine', icon: 'route', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/customers', label: 'Resident Directory', icon: 'groups', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/categories', label: 'Service Categories', icon: 'category', roles: ['ADMIN', 'DISPATCHER'] },
   ];
+
+  const visibleNavItems = allNavItems.filter(
+    (item) => item.roles.includes(userRole) || userRole === 'ADMIN'
+  );
+
+  const initials = user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'SH';
 
   return (
     <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
@@ -33,7 +43,7 @@ export default function Sidebar({ isOpen, onClose }) {
               Smart-HelpDesk
             </div>
             <div className="font-label text-secondary" style={{ fontSize: '10px' }}>
-              Live Operations
+              Operations Portal
             </div>
           </div>
         </div>
@@ -49,7 +59,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Navigation List */}
       <nav className="flex-grow-1">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -64,38 +74,38 @@ export default function Sidebar({ isOpen, onClose }) {
         ))}
       </nav>
 
-      {/* Persona Switcher / User Profile footer */}
+      {/* Real Authenticated User Profile & Logout */}
       <div className="pt-3 border-top border-outline-variant mt-auto">
-        <div className="px-2 mb-2 font-label text-secondary" style={{ fontSize: '10px' }}>
-          DEMO PERSONA
-        </div>
-        <select
-          className="form-select form-select-sm mb-3 bg-surface-container-low border-outline-variant text-on-surface font-body"
-          style={{ fontSize: '12px' }}
-          value={currentPersona.id}
-          onChange={(e) => setPersona(PERSONAS[e.target.value])}
-        >
-          <option value="DISPATCHER">🛡️ Dispatcher / Admin</option>
-          <option value="TECHNICIAN">🔧 Field Technician</option>
-          <option value="CUSTOMER">🏠 Resident / Customer</option>
-        </select>
-
-        <div className="d-flex align-items-center gap-2 px-2">
+        <div className="d-flex align-items-center gap-2 px-2 mb-3">
           <div
             className="d-flex align-items-center justify-content-center rounded-circle bg-primary-container text-white fw-bold"
-            style={{ width: '32px', height: '32px', fontSize: '12px' }}
+            style={{ width: '34px', height: '34px', fontSize: '12px' }}
           >
-            {currentPersona.avatar}
+            {initials}
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden flex-grow-1">
             <div className="font-headline text-on-surface text-truncate fw-semibold" style={{ fontSize: '13px' }}>
-              {currentPersona.name}
+              {user?.email}
             </div>
-            <div className="text-secondary text-truncate" style={{ fontSize: '11px' }}>
-              {currentPersona.role}
+            <div className="d-flex align-items-center gap-1">
+              <span className="badge bg-primary-subtle text-primary font-label" style={{ fontSize: '9px' }}>
+                {user?.role}
+              </span>
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+          onClick={logout}
+          style={{ fontSize: '12px' }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+            logout
+          </span>
+          <span>Sign Out</span>
+        </button>
       </div>
     </aside>
   );
