@@ -7,6 +7,15 @@ from smart_helpdesk.schemas.assignment import (
     ExpiredProcessingResponse,
     FallbackSummary,
 )
+from smart_helpdesk.schemas.auth import (
+    OAuthCallbackRequest,
+    OAuthUrlResponse,
+    RefreshTokenRequest,
+    TokenResponse,
+    UserLoginRequest,
+    UserRegisterRequest,
+    UserResponse,
+)
 from smart_helpdesk.schemas.customer import (
     CustomerBriefResponse,
     CustomerCreate,
@@ -54,6 +63,9 @@ __all__ = [
     "ExecutionActionResponse",
     "ExpiredProcessingResponse",
     "FallbackSummary",
+    "OAuthCallbackRequest",
+    "OAuthUrlResponse",
+    "RefreshTokenRequest",
     "ResolutionResponse",
     "ServiceCategoryBriefResponse",
     "ServiceCategoryCreate",
@@ -68,4 +80,8 @@ __all__ = [
     "TicketResponse",
     "TicketStatusResponse",
     "TicketUpdate",
+    "TokenResponse",
+    "UserLoginRequest",
+    "UserRegisterRequest",
+    "UserResponse",
 ]
