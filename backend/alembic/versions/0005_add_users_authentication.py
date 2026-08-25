@@ -36,7 +36,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("hashed_password", sa.String(length=255), nullable=True),
-        sa.Column("role", sa.Enum("ADMIN", "DISPATCHER", "TECHNICIAN", "CUSTOMER", name="userrole"), server_default="CUSTOMER", nullable=False),
+        sa.Column("role", postgresql.ENUM("ADMIN", "DISPATCHER", "TECHNICIAN", "CUSTOMER", name="userrole", create_type=False), server_default="CUSTOMER", nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column("is_verified", sa.Boolean(), server_default="false", nullable=False),
         sa.Column("oauth_provider", sa.String(length=50), nullable=True),
