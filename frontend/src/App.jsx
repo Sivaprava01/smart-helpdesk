@@ -11,13 +11,11 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
-// Authenticated Phase 2 Pages (Dashboard & Tickets)
+// Authenticated Operations Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import TicketListPage from './pages/tickets/TicketListPage';
 import CreateTicketPage from './pages/tickets/CreateTicketPage';
 import TicketDetailPage from './pages/tickets/TicketDetailPage';
-
-// Authenticated Phase 1 Pages (Entities & Capacities)
 import TechnicianCapacityPage from './pages/technicians/TechnicianCapacityPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import CustomersPage from './pages/customers/CustomersPage';
@@ -56,13 +54,22 @@ export default function App() {
             {/* Protected Application Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                {/* Phase 2: Operations Dashboard & Ticket Lifecycle */}
-                <Route path="/dashboard" element={<DashboardPage />} />
+                {/* Operations & Dispatch Dashboard (Admin & Dispatcher) */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER']}>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Ticket Lifecycle (All Authenticated Roles) */}
                 <Route path="/tickets" element={<TicketListPage />} />
                 <Route path="/tickets/new" element={<CreateTicketPage />} />
                 <Route path="/tickets/:id" element={<TicketDetailPage />} />
 
-                {/* Phase 1: Admin & Dispatcher Master Entities */}
+                {/* Admin & Dispatcher Master Entities */}
                 <Route
                   path="/technicians"
                   element={
@@ -87,20 +94,6 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-
-                {/* Upcoming Phases */}
-                <Route
-                  path="/technician/jobs"
-                  element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER', 'TECHNICIAN']}>
-                      <PhasePlaceholder
-                        title="Technician Field Portal ('My Jobs')"
-                        description="Active assignment offers with live countdown timers and field execution workflow."
-                        nextPhase="Phase 4"
-                      />
-                    </ProtectedRoute>
-                  }
-                />
                 <Route
                   path="/routing"
                   element={
@@ -109,6 +102,20 @@ export default function App() {
                         title="Routing & Fallback Monitor"
                         description="Deterministic routing preview, scoring simulator, and expired offer timeout processing."
                         nextPhase="Phase 3"
+                      />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Technician Portal (Field Specialists & Admin) */}
+                <Route
+                  path="/technician/jobs"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'TECHNICIAN']}>
+                      <PhasePlaceholder
+                        title="Technician Field Portal ('My Jobs')"
+                        description="Active assignment offers with live countdown timers and field execution workflow."
+                        nextPhase="Phase 4"
                       />
                     </ProtectedRoute>
                   }

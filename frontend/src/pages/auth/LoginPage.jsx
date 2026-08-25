@@ -15,12 +15,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [activePreset, setActivePreset] = useState(null);
 
-  // Quick preset helper to speed up demo testing
-  function handleFillPreset(presetEmail, presetPass) {
-    setEmail(presetEmail);
-    setPassword(presetPass);
+  // Quick preset helper for development and demo testing
+  const presets = [
+    { label: 'Admin', email: 'admin@smarthelpdesk.com', pass: 'AdminPass123!', role: 'ADMIN', icon: 'shield_person' },
+    { label: 'Dispatcher', email: 'dispatcher@smarthelpdesk.com', pass: 'DispatchPass123!', role: 'DISPATCHER', icon: 'headset_mic' },
+    { label: 'Technician', email: 'tech.ravi@smarthelpdesk.com', pass: 'TechPass123!', role: 'TECHNICIAN', icon: 'engineering' },
+    { label: 'Resident', email: 'resident.alice@smarthelpdesk.com', pass: 'ResidentPass123!', role: 'CUSTOMER', icon: 'home' },
+  ];
+
+  function handleSelectPreset(preset) {
+    setEmail(preset.email);
+    setPassword(preset.pass);
+    setActivePreset(preset.role);
     setError(null);
+  }
+
+  function getRoleDefaultRoute(role) {
+    if (role === 'ADMIN' || role === 'DISPATCHER') return '/dashboard';
+    if (role === 'TECHNICIAN') return '/technician/jobs';
+    return '/tickets';
   }
 
   async function handleSubmit(e) {
@@ -33,11 +48,14 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      await login(email.trim(), password);
+      const user = await login(email.trim(), password);
 
-      // Redirect to intended destination or default to technicians
-      const from = location.state?.from?.pathname || '/technicians';
-      navigate(from, { replace: true });
+      // Determine appropriate redirect destination
+      const fromPath = location.state?.from?.pathname;
+      const defaultPath = getRoleDefaultRoute(user?.role);
+      const targetPath = fromPath && fromPath !== '/login' ? fromPath : defaultPath;
+
+      navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -105,7 +123,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <div className="fw-semibold text-white">Role-Based Access</div>
-                  <div className="text-white-50 small">Strict RBAC boundaries for Admins, Field Specialists, and Residents.</div>
+                  <div className="text-white-50 small">Strict boundaries for Admins, Dispatchers, Technicians, and Residents.</div>
                 </div>
               </div>
             </div>
@@ -120,7 +138,7 @@ export default function LoginPage() {
 
       {/* Right Login Form Section */}
       <div className="col-12 col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
-        <div className="w-100" style={{ maxWidth: '420px' }}>
+        <div className="w-100" style={{ maxWidth: '440px' }}>
           {/* Brand header on mobile */}
           <div className="d-flex d-lg-none align-items-center gap-2 mb-4 justify-content-center">
             <span className="material-symbols-outlined text-primary fill-1" style={{ fontSize: '28px' }}>
@@ -129,9 +147,40 @@ export default function LoginPage() {
             <span className="font-display h4 mb-0 text-on-surface fw-bold">Smart-HelpDesk</span>
           </div>
 
-          <div className="text-center mb-4">
+          <div className="text-center mb-3">
             <h2 className="font-headline h4 text-on-surface fw-bold mb-1">Welcome Back</h2>
             <p className="text-secondary small mb-0">Sign in to your operational workspace</p>
+          </div>
+
+          {/* Role Fast-Switcher Demo Tabs (Matches Stitch 0307e6bc...) */}
+          <div className="p-1 bg-surface-container-low rounded-3 border border-outline-variant mb-4">
+            <div className="text-center font-label text-secondary py-1" style={{ fontSize: '10px' }}>
+              DEMO FAST-SWITCHER (CLICK TO AUTO-FILL CREDENTIALS)
+            </div>
+            <div className="row g-1">
+              {presets.map((preset) => {
+                const isSelected = activePreset === preset.role || email === preset.email;
+                return (
+                  <div key={preset.role} className="col-6 col-sm-3">
+                    <button
+                      type="button"
+                      className={`btn btn-sm w-100 py-1 px-1 text-center font-label d-flex flex-column align-items-center justify-content-center ${
+                        isSelected
+                          ? 'bg-primary text-white fw-bold shadow-sm'
+                          : 'btn-link text-secondary text-decoration-none hover-bg'
+                      }`}
+                      style={{ fontSize: '10px', borderRadius: 'var(--radius-md)' }}
+                      onClick={() => handleSelectPreset(preset)}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                        {preset.icon}
+                      </span>
+                      <span>{preset.label}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Error Alert */}
@@ -161,9 +210,12 @@ export default function LoginPage() {
                   id="loginEmail"
                   type="email"
                   className="form-control ps-5"
-                  placeholder="name@company.com"
+                  placeholder="name@smarthelpdesk.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setActivePreset(null);
+                  }}
                   required
                   autoFocus
                 />
@@ -189,7 +241,10 @@ export default function LoginPage() {
                   className="form-control ps-5 pe-5"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setActivePreset(null);
+                  }}
                   required
                 />
                 <button
@@ -230,7 +285,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Google SSO Button (Matches Stitch 0307e6bc...) */}
+          {/* Google SSO Button */}
           <button
             type="button"
             className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2 mb-3 bg-white"
