@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TopHeader({ onToggleSidebar }) {
+  const { user } = useAuth();
+
   return (
     <header className="app-header">
       {/* Left: Mobile Toggle & Quick Search */}
@@ -28,13 +31,20 @@ export default function TopHeader({ onToggleSidebar }) {
             type="text"
             className="form-control form-control-sm bg-surface-container-low border-0 ps-4 text-on-surface"
             style={{ fontSize: '13px', borderRadius: 'var(--radius-md)' }}
-            placeholder="Search tickets, technicians..."
+            placeholder="Search tickets, specialists..."
           />
         </div>
       </div>
 
-      {/* Right: Actions */}
-      <div className="d-flex align-items-center gap-2">
+      {/* Right: Role indicator & Action Button */}
+      <div className="d-flex align-items-center gap-3">
+        <div className="d-none d-md-flex align-items-center gap-2">
+          <span className="font-label text-secondary" style={{ fontSize: '11px' }}>ROLE:</span>
+          <span className="badge bg-primary-subtle text-primary font-label" style={{ fontSize: '10px' }}>
+            {user?.role || 'AUTHENTICATED'}
+          </span>
+        </div>
+
         <Link to="/tickets/new" className="btn-sh-primary btn-sm text-decoration-none">
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
             add

@@ -1,9 +1,12 @@
 /**
  * Core API Client for Smart-HelpDesk Backend
- * Connects directly to FastAPI backend via /api/v1 prefix
+ * Connects directly to FastAPI backend via /api/v1 prefix with JWT Bearer auth and refresh interceptor
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+export const TOKEN_STORAGE_KEY = 'smart_helpdesk_access_token';
+export const REFRESH_TOKEN_STORAGE_KEY = 'smart_helpdesk_refresh_token';
 
 class ApiError extends Error {
   constructor(message, status = 500, details = null) {
@@ -14,14 +17,34 @@ class ApiError extends Error {
   }
 }
 
-async function request(endpoint, options = {}) {
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
+async function request(endpoint, options = {}, isRetry = false) {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   };
 
   if (config.body && typeof config.body === 'object') {
@@ -34,6 +57,63 @@ async function request(endpoint, options = {}) {
     // Handle empty 204 No Content responses
     if (response.status === 204) {
       return null;
+    }
+
+    // Handle 401 Unauthorized with token refresh if not already retried or calling auth endpoints
+    if (
+      response.status === 401 &&
+      !isRetry &&
+      !endpoint.startsWith('/auth/login') &&
+      !endpoint.startsWith('/auth/register') &&
+      !endpoint.startsWith('/auth/refresh')
+    ) {
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+      if (refreshToken) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          try {
+            const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              localStorage.setItem(TOKEN_STORAGE_KEY, refreshData.access_token);
+              if (refreshData.refresh_token) {
+                localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshData.refresh_token);
+              }
+              isRefreshing = false;
+              onRefreshed(refreshData.access_token);
+              // Retry original request
+              return request(endpoint, options, true);
+            } else {
+              // Refresh token invalid or expired
+              isRefreshing = false;
+              localStorage.removeItem(TOKEN_STORAGE_KEY);
+              localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+              window.dispatchEvent(new CustomEvent('auth:expired'));
+            }
+          } catch {
+            isRefreshing = false;
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+          }
+        } else {
+          // Wait for active refresh to complete
+          return new Promise((resolve, reject) => {
+            subscribeTokenRefresh((newToken) => {
+              if (newToken) {
+                resolve(request(endpoint, options, true));
+              } else {
+                reject(new ApiError('Session expired. Please log in again.', 401));
+              }
+            });
+          });
+        }
+      }
     }
 
     const contentType = response.headers.get('content-type');
