@@ -108,3 +108,45 @@ def require_roles(allowed_roles: list[UserRole]) -> Callable[[User], User]:
         return current_user
 
     return role_checker
+
+
+# Pre-configured role dependencies
+require_authenticated = get_current_user
+require_admin = require_roles([UserRole.ADMIN])
+require_admin_or_dispatcher = require_roles([UserRole.ADMIN, UserRole.DISPATCHER])
+require_technician_or_admin = require_roles([UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.DISPATCHER])
+require_customer_or_admin = require_roles([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.DISPATCHER])
+
+
+def validate_technician_ownership(current_user: User, target_technician_id: uuid.UUID) -> None:
+    """Validates that a technician is only accessing or acting on their own assignments."""
+    if current_user.role in (UserRole.ADMIN, UserRole.DISPATCHER):
+        return
+    if current_user.role == UserRole.TECHNICIAN:
+        if not current_user.technician_id or current_user.technician_id != target_technician_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Technicians are only authorized to access and execute their own assignments.",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires technician or administrative role.",
+        )
+
+
+def validate_customer_ownership(current_user: User, target_customer_id: uuid.UUID) -> None:
+    """Validates that a customer is only accessing or acting on their own tickets."""
+    if current_user.role in (UserRole.ADMIN, UserRole.DISPATCHER):
+        return
+    if current_user.role == UserRole.CUSTOMER:
+        if not current_user.customer_id or current_user.customer_id != target_customer_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Customers are only authorized to access and interact with their own tickets.",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires customer or administrative role.",
+        )
