@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Modal from '../common/Modal';
+import ModalDialog from '../common/ModalDialog';
 import Button from '../common/Button';
 
 export default function DeclineOfferModal({ isOpen, onClose, onConfirm, loading = false, ticketTitle = '' }) {
@@ -20,7 +20,7 @@ export default function DeclineOfferModal({ isOpen, onClose, onConfirm, loading 
   }
 
   return (
-    <Modal
+    <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
       title="Decline Assignment Offer"
@@ -85,6 +85,6 @@ export default function DeclineOfferModal({ isOpen, onClose, onConfirm, loading 
           </div>
         </div>
       </form>
-    </Modal>
+    </ModalDialog>
   );
 }

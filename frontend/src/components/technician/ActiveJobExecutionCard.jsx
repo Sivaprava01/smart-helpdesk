@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Button from '../common/Button';
-import Modal from '../common/Modal';
+import ModalDialog from '../common/ModalDialog';
 
 export default function ActiveJobExecutionCard({
   ticket,
@@ -201,7 +201,7 @@ export default function ActiveJobExecutionCard({
       </section>
 
       {/* Complete Work Modal */}
-      <Modal
+      <ModalDialog
         isOpen={showCompleteModal}
         onClose={() => setShowCompleteModal(false)}
         title="Complete Service Work"
@@ -237,7 +237,7 @@ export default function ActiveJobExecutionCard({
             />
           </div>
         </form>
-      </Modal>
+      </ModalDialog>
     </>
   );
 }
