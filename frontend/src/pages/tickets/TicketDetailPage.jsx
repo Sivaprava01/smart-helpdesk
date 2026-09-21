@@ -106,6 +106,11 @@ export default function TicketDetailPage() {
   const isCustomer = user?.role === 'CUSTOMER';
   const isAdminOrDispatcher = user?.role === 'ADMIN' || user?.role === 'DISPATCHER';
 
+  const assignedSpecialist =
+    assignments.find((a) => a.status === 'ACCEPTED' || a.status === 'COMPLETED') ||
+    assignments.find((a) => a.status === 'OFFERED' || a.status === 'DEFERRED') ||
+    null;
+
   return (
     <div>
       <PageHeader
@@ -206,7 +211,7 @@ export default function TicketDetailPage() {
               <div>
                 <div className="d-flex align-items-center gap-2 mb-1">
                   <span className="badge bg-surface-container text-on-surface border border-outline-variant font-label" style={{ fontSize: '11px' }}>
-                    {ticket.service_category?.name || 'General Maintenance'}
+                    {ticket.category?.name || ticket.service_category?.name || 'General Maintenance'}
                   </span>
                   {ticket.is_urgent && (
                     <span className="badge bg-danger text-white font-label" style={{ fontSize: '10px' }}>
@@ -214,7 +219,9 @@ export default function TicketDetailPage() {
                     </span>
                   )}
                 </div>
-                <h3 className="font-headline h5 text-on-surface fw-bold mb-0">{ticket.title}</h3>
+                <h3 className="font-headline h5 text-on-surface fw-bold mb-0">
+                  {ticket.description?.length > 60 ? ticket.description.slice(0, 60) + '...' : ticket.description}
+                </h3>
               </div>
               <StatusBadge status={ticket.status} />
             </div>
@@ -293,35 +300,45 @@ export default function TicketDetailPage() {
               <span>Assigned Specialist</span>
             </h3>
 
-            {ticket.technician ? (
+            {assignedSpecialist ? (
               <div>
                 <div className="d-flex align-items-center gap-3 mb-3">
                   <div
-                    className="d-flex align-items-center justify-content-center rounded-circle bg-primary-container text-white fw-bold"
+                    className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
                     style={{ width: '44px', height: '44px', fontSize: '16px' }}
                   >
-                    {ticket.technician.full_name?.slice(0, 2).toUpperCase() || 'TC'}
+                    <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                      engineering
+                    </span>
                   </div>
                   <div>
-                    <div className="fw-bold text-on-surface">{ticket.technician.full_name}</div>
-                    <div className="text-secondary small font-mono">{ticket.technician.phone_number}</div>
+                    <div className="fw-bold text-on-surface">
+                      Specialist #{assignedSpecialist.technician_id.slice(0, 8).toUpperCase()}
+                    </div>
+                    <div className="text-secondary small font-mono">
+                      {assignedSpecialist.status === 'ACCEPTED'
+                        ? 'Active Assignment'
+                        : assignedSpecialist.status === 'COMPLETED'
+                        ? 'Work Completed'
+                        : 'Offer Pending'}
+                    </div>
                   </div>
                 </div>
 
                 <div className="vstack gap-2 small">
                   <div className="d-flex justify-content-between py-1 border-bottom border-outline-variant">
-                    <span className="text-secondary">Assigned Zone:</span>
-                    <span className="fw-semibold font-mono">{ticket.technician.current_zone || 'Tower A'}</span>
+                    <span className="text-secondary">Technician ID:</span>
+                    <span className="fw-semibold font-mono">{assignedSpecialist.technician_id.slice(0, 8).toUpperCase()}</span>
                   </div>
                   <div className="d-flex justify-content-between py-1 border-bottom border-outline-variant">
-                    <span className="text-secondary">Rating:</span>
-                    <span className="fw-bold text-warning font-mono">
-                      ★ {ticket.technician.overall_rating ? Number(ticket.technician.overall_rating).toFixed(2) : '5.00'}
+                    <span className="text-secondary">Assignment Status:</span>
+                    <span className="fw-semibold font-mono">{assignedSpecialist.status}</span>
+                  </div>
+                  <div className="d-flex justify-content-between py-1 border-bottom border-outline-variant">
+                    <span className="text-secondary">Assigned At:</span>
+                    <span className="fw-semibold font-mono">
+                      {new Date(assignedSpecialist.assigned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                  </div>
-                  <div className="d-flex justify-content-between py-1 border-bottom border-outline-variant">
-                    <span className="text-secondary">Completed Jobs:</span>
-                    <span className="fw-semibold font-mono">{ticket.technician.completed_jobs_count || 0}</span>
                   </div>
                 </div>
               </div>

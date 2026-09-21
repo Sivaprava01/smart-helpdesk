@@ -28,6 +28,12 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
     }
   }
 
+  const recommended = previewData?.recommended_technician || previewData?.recommended_candidate;
+  const topCandidate = previewData?.ranked_candidates?.[0];
+  const breakdown = topCandidate?.score_breakdown;
+  const excludedList = previewData?.excluded_candidates || previewData?.excluded_technicians || [];
+  const eligibleCount = previewData?.eligible_count ?? previewData?.eligible_technicians_count ?? previewData?.ranked_candidates?.length ?? 0;
+
   return (
     <ModalDialog
       isOpen={isOpen}
@@ -57,10 +63,10 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
           <div className="p-3 bg-surface-container-low rounded-2 mb-3 border border-outline-variant">
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="font-label text-secondary" style={{ fontSize: '11px' }}>
-                SERVICE CATEGORY: <strong>{previewData.service_category_name || 'General'}</strong>
+                SERVICE CATEGORY: <strong>{previewData.ticket_category || previewData.service_category_name || 'General'}</strong>
               </span>
               <span className="badge bg-primary-subtle text-primary font-mono" style={{ fontSize: '11px' }}>
-                {previewData.eligible_technicians_count} Eligible Candidates
+                {eligibleCount} Eligible Candidates
               </span>
             </div>
             <div className="text-secondary small">
@@ -69,7 +75,7 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
           </div>
 
           {/* Recommended Candidate */}
-          {previewData.recommended_candidate ? (
+          {recommended ? (
             <div className="sh-card bg-white border-2 border-primary mb-4 p-3 shadow-sm">
               <div className="d-flex justify-content-between align-items-start mb-2">
                 <div className="d-flex align-items-center gap-2">
@@ -82,14 +88,14 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
                   <div>
                     <div className="d-flex align-items-center gap-2">
                       <h4 className="h6 font-headline text-on-surface mb-0">
-                        {previewData.recommended_candidate.technician_name}
+                        {recommended.technician_name}
                       </h4>
                       <span className="badge bg-success text-white font-label" style={{ fontSize: '10px' }}>
                         TOP RECOMMENDATION
                       </span>
                     </div>
                     <div className="text-secondary small font-mono">
-                      Zone: {previewData.recommended_candidate.current_zone || 'Tower A'}
+                      Domain: {previewData.ticket_category || 'General'}
                     </div>
                   </div>
                 </div>
@@ -99,7 +105,7 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
                     TOTAL SCORE
                   </div>
                   <div className="font-mono display-6 fw-bold text-primary" style={{ fontSize: '24px' }}>
-                    {previewData.recommended_candidate.total_score.toFixed(2)}
+                    {(recommended.total_score != null ? Number(recommended.total_score) : 0).toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -111,24 +117,24 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
                 </div>
                 <div className="row g-2 font-mono small" style={{ fontSize: '11px' }}>
                   <div className="col-6 col-md">
-                    <div className="text-secondary">Proximity (20%)</div>
-                    <div className="fw-bold">{previewData.recommended_candidate.location_score?.toFixed(1) || '0.0'}</div>
+                    <div className="text-secondary">Proximity (20 pts)</div>
+                    <div className="fw-bold">{(breakdown?.location ?? topCandidate?.location_score ?? 0).toFixed(1)}</div>
                   </div>
                   <div className="col-6 col-md">
-                    <div className="text-secondary">Rating (25%)</div>
-                    <div className="fw-bold">{previewData.recommended_candidate.rating_score?.toFixed(1) || '0.0'}</div>
+                    <div className="text-secondary">Rating (25 pts)</div>
+                    <div className="fw-bold">{(breakdown?.rating ?? topCandidate?.rating_score ?? 0).toFixed(1)}</div>
                   </div>
                   <div className="col-6 col-md">
-                    <div className="text-secondary">History (25%)</div>
-                    <div className="fw-bold">{previewData.recommended_candidate.history_score?.toFixed(1) || '0.0'}</div>
+                    <div className="text-secondary">History (25 pts)</div>
+                    <div className="fw-bold">{(breakdown?.customer_history ?? topCandidate?.history_score ?? 0).toFixed(1)}</div>
                   </div>
                   <div className="col-6 col-md">
-                    <div className="text-secondary">Reliability (15%)</div>
-                    <div className="fw-bold">{previewData.recommended_candidate.reopen_score?.toFixed(1) || '0.0'}</div>
+                    <div className="text-secondary">Reliability (15 pts)</div>
+                    <div className="fw-bold">{(breakdown?.reopen_rate ?? topCandidate?.reopen_score ?? 0).toFixed(1)}</div>
                   </div>
                   <div className="col-6 col-md">
-                    <div className="text-secondary">Workload (15%)</div>
-                    <div className="fw-bold">{previewData.recommended_candidate.workload_score?.toFixed(1) || '0.0'}</div>
+                    <div className="text-secondary">Workload (15 pts)</div>
+                    <div className="fw-bold">{(breakdown?.workload ?? topCandidate?.workload_score ?? 0).toFixed(1)}</div>
                   </div>
                 </div>
               </div>
@@ -143,27 +149,29 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
           {previewData.ranked_candidates && previewData.ranked_candidates.length > 1 && (
             <div className="mb-4">
               <div className="font-label text-secondary mb-2" style={{ fontSize: '11px' }}>
-                ALL RANKED CANDIDATES
+                ALL RANKED CANDIDATES ({previewData.ranked_candidates.length})
               </div>
               <div className="table-responsive">
                 <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: '12px' }}>
                   <thead className="bg-surface-container-low">
                     <tr>
-                      <th>Rank</th>
+                      <th style={{ width: '50px' }} className="text-center">Rank</th>
                       <th>Technician</th>
-                      <th>Zone</th>
-                      <th>Score</th>
+                      <th className="text-end" style={{ width: '100px' }}>Score</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previewData.ranked_candidates.map((cand, idx) => (
                       <tr key={cand.technician_id}>
-                        <td className="fw-bold text-center" style={{ width: '45px' }}>
-                          #{idx + 1}
+                        <td className="fw-bold text-center">
+                          #{cand.rank || idx + 1}
                         </td>
-                        <td>{cand.technician_name}</td>
-                        <td>{cand.current_zone || 'Tower A'}</td>
-                        <td className="font-mono fw-bold text-primary">{cand.total_score.toFixed(2)}</td>
+                        <td>
+                          <div className="fw-semibold">{cand.technician_name}</div>
+                        </td>
+                        <td className="font-mono fw-bold text-primary text-end">
+                          {(cand.total_score != null ? Number(cand.total_score) : 0).toFixed(2)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -172,25 +180,30 @@ export default function RoutingPreviewModal({ isOpen, onClose, ticketId }) {
             </div>
           )}
 
-          {/* Excluded Technicians */}
-          {previewData.excluded_technicians && previewData.excluded_technicians.length > 0 && (
+          {/* Excluded Candidates */}
+          {excludedList.length > 0 && (
             <div>
               <div className="font-label text-secondary mb-2" style={{ fontSize: '11px' }}>
-                EXCLUDED CANDIDATES ({previewData.excluded_technicians.length})
+                EXCLUDED CANDIDATES ({excludedList.length})
               </div>
               <div className="vstack gap-1">
-                {previewData.excluded_technicians.map((ex) => (
-                  <div
-                    key={ex.technician_id}
-                    className="p-2 bg-surface-container-lowest border rounded d-flex justify-content-between align-items-center small"
-                    style={{ fontSize: '12px' }}
-                  >
-                    <span>{ex.technician_name}</span>
-                    <span className="badge bg-secondary-subtle text-secondary font-label" style={{ fontSize: '10px' }}>
-                      {ex.reason || 'Off Duty / Capacity Reached'}
-                    </span>
-                  </div>
-                ))}
+                {excludedList.map((ex) => {
+                  const reasonText = Array.isArray(ex.reasons)
+                    ? ex.reasons.join(', ')
+                    : ex.reasons || ex.reason || 'Ineligible';
+                  return (
+                    <div
+                      key={ex.technician_id}
+                      className="p-2 bg-surface-container-lowest border rounded d-flex justify-content-between align-items-center small"
+                      style={{ fontSize: '12px' }}
+                    >
+                      <span>{ex.technician_name}</span>
+                      <span className="badge bg-secondary-subtle text-secondary font-label" style={{ fontSize: '10px' }}>
+                        {reasonText}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

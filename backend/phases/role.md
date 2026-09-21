@@ -56,3 +56,12 @@ uv run python -m smart_helpdesk.db.seed_users
 | `DISPATCHER` | `dispatcher@smarthelpdesk.com` | `DispatchPass123!` | Operations staff account |
 | `TECHNICIAN` | `tech.ravi@smarthelpdesk.com` | `TechPass123!` | Linked to Technician `Ravi Kumar` (`Tower A`, Skills: Plumbing, Electrical, HVAC) |
 | `CUSTOMER` | `resident.alice@smarthelpdesk.com` | `ResidentPass123!` | Linked to Customer `Alice Smith` (`Tower A, Apt 402`) |
+
+----------------------------
+
+  ROLE        EMAIL                          PASSWORD
+------------------------------------------------------------------
+  ADMIN       admin@smarthelpdesk.com        AdminPass123!
+  DISPATCHER  dispatcher@smarthelpdesk.com   DispatchPass123!
+  TECHNICIAN  tech.ravi@smarthelpdesk.com    TechPass123!
+  CUSTOMER    resident.alice@smarthelpdesk.com ResidentPass123!

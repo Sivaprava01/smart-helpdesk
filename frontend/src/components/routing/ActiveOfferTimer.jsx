@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 
 /**
- * 15-minute response window countdown timer for offered technician assignments.
+ * Response window countdown timer for offered technician assignments.
  */
-export default function ActiveOfferTimer({ offeredAt, onExpired = null }) {
+export default function ActiveOfferTimer({ offeredAt, expiresAt, onExpired = null }) {
   const [timeLeft, setTimeLeft] = useState('');
   const [isWarning, setIsWarning] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
-    if (!offeredAt) return;
-
-    const offerTime = new Date(offeredAt).getTime();
-    const expiryTime = offerTime + 15 * 60 * 1000; // 15 minutes window
+    let expiryTime;
+    if (expiresAt) {
+      expiryTime = new Date(expiresAt).getTime();
+    } else if (offeredAt) {
+      expiryTime = new Date(offeredAt).getTime() + 10 * 60 * 1000; // 10 minutes default window
+    } else {
+      return;
+    }
 
     function updateTimer() {
       const now = Date.now();
@@ -36,9 +40,9 @@ export default function ActiveOfferTimer({ offeredAt, onExpired = null }) {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [offeredAt, onExpired]);
+  }, [offeredAt, expiresAt, onExpired]);
 
-  if (!offeredAt) return <span className="font-mono text-secondary small">--:--</span>;
+  if (!offeredAt && !expiresAt) return <span className="font-mono text-secondary small">--:--</span>;
 
   let badgeColor = 'bg-primary-subtle text-primary border-primary-subtle';
   if (isWarning) badgeColor = 'bg-warning-subtle text-warning-emphasis border-warning';

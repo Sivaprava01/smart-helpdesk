@@ -2,49 +2,52 @@ import React from 'react';
 
 /**
  * Visual breakdown of the 5-factor deterministic routing formula:
- * Total Score = (Location * 0.20) + (Rating * 0.25) + (History * 0.25) + (Reopen * 0.15) + (Workload * 0.15)
+ * Total Score = Location(20 max) + Rating(25 max) + Customer History(25 max) + Reopen Rate(15 max) + Workload(15 max)
  */
 export default function CandidateScoreBreakdown({ candidate }) {
   if (!candidate) return null;
+
+  const breakdown = candidate.score_breakdown || {};
+  const totalScore = candidate.total_score != null ? Number(candidate.total_score) : 0;
 
   const factors = [
     {
       label: 'Proximity',
       weight: '20%',
-      raw: candidate.location_score,
-      max: 100,
+      raw: breakdown.location != null ? breakdown.location : candidate.location_score,
+      max: 20,
       icon: 'near_me',
       desc: 'Zone affinity & location match',
     },
     {
       label: 'Overall Rating',
       weight: '25%',
-      raw: candidate.rating_score,
-      max: 100,
+      raw: breakdown.rating != null ? breakdown.rating : candidate.rating_score,
+      max: 25,
       icon: 'star',
       desc: 'Customer historical star rating',
     },
     {
       label: 'Customer History',
       weight: '25%',
-      raw: candidate.history_score,
-      max: 100,
+      raw: breakdown.customer_history != null ? breakdown.customer_history : candidate.history_score,
+      max: 25,
       icon: 'handshake',
       desc: 'Previous successful visits to resident',
     },
     {
       label: 'Reliability',
       weight: '15%',
-      raw: candidate.reopen_score,
-      max: 100,
+      raw: breakdown.reopen_rate != null ? breakdown.reopen_rate : candidate.reopen_score,
+      max: 15,
       icon: 'verified',
       desc: 'Low reopen rate track record',
     },
     {
       label: 'Workload Capacity',
       weight: '15%',
-      raw: candidate.workload_score,
-      max: 100,
+      raw: breakdown.workload != null ? breakdown.workload : candidate.workload_score,
+      max: 15,
       icon: 'speed',
       desc: 'Available capacity vs concurrent max',
     },
@@ -57,18 +60,18 @@ export default function CandidateScoreBreakdown({ candidate }) {
           5-FACTOR DETERMINISTIC SCORING FORMULA
         </span>
         <span className="font-mono text-primary fw-bold small">
-          Total: {candidate.total_score.toFixed(2)} / 100
+          Total: {totalScore.toFixed(2)} / 100
         </span>
       </div>
 
       <div className="vstack gap-2">
         {factors.map((f) => {
           const scoreValue = f.raw != null ? Number(f.raw) : 0;
-          const pct = Math.min(100, Math.max(0, scoreValue));
+          const pct = f.max > 0 ? Math.min(100, Math.max(0, (scoreValue / f.max) * 100)) : 0;
 
           let barColor = 'bg-primary';
-          if (scoreValue >= 80) barColor = 'bg-success';
-          else if (scoreValue < 50) barColor = 'bg-warning';
+          if (pct >= 80) barColor = 'bg-success';
+          else if (pct < 50) barColor = 'bg-warning';
 
           return (
             <div key={f.label} className="small">
@@ -85,7 +88,7 @@ export default function CandidateScoreBreakdown({ candidate }) {
                   </span>
                 </div>
                 <span className="font-mono fw-bold text-on-surface" style={{ fontSize: '12px' }}>
-                  {scoreValue.toFixed(1)}
+                  {scoreValue.toFixed(1)} / {f.max}
                 </span>
               </div>
 

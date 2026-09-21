@@ -52,6 +52,14 @@ export const TICKET_STATUS = {
     icon: 'rate_review',
     description: 'Work completed by technician; customer verification required.',
   },
+  RESOLVED: {
+    key: 'RESOLVED',
+    label: 'Issue Resolved',
+    adminLabel: 'Resolved',
+    className: 'sh-badge-closed',
+    icon: 'task_alt',
+    description: 'Work completed and issue resolved.',
+  },
   CLOSED: {
     key: 'CLOSED',
     label: 'Resolved & Closed',
@@ -108,6 +116,12 @@ export const ASSIGNMENT_STATUS = {
     label: 'Expired',
     className: 'sh-badge-cancelled',
     icon: 'timer_off',
+  },
+  CANCELLED: {
+    key: 'CANCELLED',
+    label: 'Cancelled',
+    className: 'sh-badge-cancelled',
+    icon: 'cancel',
   },
   COMPLETED: {
     key: 'COMPLETED',

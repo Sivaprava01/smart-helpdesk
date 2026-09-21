@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Button from '../common/Button';
-import Modal from '../common/Modal';
+import ModalDialog from '../common/ModalDialog';
 
 export default function ActiveJobExecutionCard({
   ticket,
@@ -16,7 +16,16 @@ export default function ActiveJobExecutionCard({
   if (!ticket) return null;
 
   const shortId = ticket.id.slice(0, 8).toUpperCase();
-  const status = ticket.status; // 'ASSIGNED' | 'ARRIVED' | 'IN_PROGRESS' | 'AWAITING_CUSTOMER_CONFIRMATION' | 'RESOLVED'
+  const status = ticket.status; // 'ASSIGNED' | 'ARRIVED' | 'IN_PROGRESS' | 'AWAITING_CUSTOMER_CONFIRMATION' | 'RESOLVED' | 'CLOSED'
+  const summaryTitle = ticket.description
+    ? ticket.description.length > 55
+      ? ticket.description.slice(0, 55) + '...'
+      : ticket.description
+    : ticket.title || 'Service Request';
+
+  const categoryName = ticket.category?.name || ticket.service_category?.name || 'Service';
+  const locationText = ticket.location || ticket.customer?.default_location || 'Tower A';
+  const residentName = ticket.contact_name || ticket.customer?.full_name || 'Resident';
 
   // Step indices
   const steps = [
@@ -58,7 +67,10 @@ export default function ActiveJobExecutionCard({
     e.preventDefault();
     try {
       setActionInProgress('complete');
-      await onCompleteWork(ticket.id, { completion_notes: completionNotes.trim() || undefined });
+      await onCompleteWork(ticket.id, {
+        note: completionNotes.trim() || undefined,
+        completion_notes: completionNotes.trim() || undefined,
+      });
       setShowCompleteModal(false);
       setCompletionNotes('');
     } finally {
@@ -76,7 +88,7 @@ export default function ActiveJobExecutionCard({
               CURRENT EXECUTION
             </span>
             <span className="font-headline fw-bold text-on-surface small">
-              {ticket.service_category?.name || 'Service'} Job
+              {categoryName} Job
             </span>
           </div>
           <span className="font-mono text-primary fw-bold small">#TK-{shortId}</span>
@@ -86,14 +98,14 @@ export default function ActiveJobExecutionCard({
         <div className="p-3 p-md-4">
           <div className="d-flex justify-content-between align-items-start mb-3">
             <div>
-              <h3 className="font-headline h5 text-on-surface fw-bold mb-1">{ticket.title}</h3>
+              <h3 className="font-headline h5 text-on-surface fw-bold mb-1">{summaryTitle}</h3>
               <p className="text-secondary small mb-0 font-mono">
-                Location: {ticket.customer?.default_location || 'Tower A'} • Resident: {ticket.customer?.full_name || 'Resident'}
+                Location: {locationText} • Resident: {residentName}
               </p>
             </div>
           </div>
 
-          {/* Sequential Stepper (Matches Stitch ee416550...) */}
+          {/* Sequential Stepper */}
           <div className="py-3 px-2 my-2 bg-surface-container-lowest rounded-3 border border-outline-variant">
             <div className="d-flex justify-content-between position-relative">
               {/* Connector line */}
@@ -149,7 +161,7 @@ export default function ActiveJobExecutionCard({
                 {status === 'ARRIVED' && 'Begin On-Site Service & Diagnostic'}
                 {status === 'IN_PROGRESS' && 'Complete Work & Submit Completion Summary'}
                 {status === 'AWAITING_CUSTOMER_CONFIRMATION' && 'Work Submitted • Awaiting Resident Confirmation'}
-                {status === 'RESOLVED' && 'Job Successfully Resolved & Closed'}
+                {(status === 'RESOLVED' || status === 'CLOSED') && 'Job Successfully Resolved & Closed'}
               </span>
             </div>
 
@@ -201,7 +213,7 @@ export default function ActiveJobExecutionCard({
       </section>
 
       {/* Complete Work Modal */}
-      <Modal
+      <ModalDialog
         isOpen={showCompleteModal}
         onClose={() => setShowCompleteModal(false)}
         title="Complete Service Work"
@@ -237,7 +249,7 @@ export default function ActiveJobExecutionCard({
             />
           </div>
         </form>
-      </Modal>
+      </ModalDialog>
     </>
   );
 }

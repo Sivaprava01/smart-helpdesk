@@ -68,14 +68,16 @@ export default function DashboardPage() {
     const pending = tickets.filter((t) => t.status === 'PENDING').length;
     const routing = tickets.filter((t) => t.status === 'ROUTING').length;
     const inProgress = tickets.filter(
-      (t) => t.status === 'ARRIVED' || t.status === 'IN_PROGRESS'
+      (t) => t.status === 'ASSIGNED' || t.status === 'ARRIVED' || t.status === 'IN_PROGRESS'
     ).length;
     const awaitingConfirmation = tickets.filter(
       (t) => t.status === 'AWAITING_CUSTOMER_CONFIRMATION'
     ).length;
-    const closed = tickets.filter((t) => t.status === 'CLOSED').length;
+    const closed = tickets.filter((t) => t.status === 'CLOSED' || t.status === 'RESOLVED').length;
     const reopened = tickets.filter((t) => t.status === 'REOPENED').length;
-    const active = total - closed - tickets.filter((t) => t.status === 'CANCELLED').length;
+    const active = tickets.filter(
+      (t) => t.status !== 'CLOSED' && t.status !== 'RESOLVED' && t.status !== 'CANCELLED'
+    ).length;
 
     return {
       total,
@@ -93,12 +95,12 @@ export default function DashboardPage() {
   const queueTickets = useMemo(() => {
     return tickets.filter((t) => {
       if (activeQueueFilter === 'ALL_ACTIVE') {
-        return t.status !== 'CLOSED' && t.status !== 'CANCELLED';
+        return t.status !== 'CLOSED' && t.status !== 'RESOLVED' && t.status !== 'CANCELLED';
       }
       if (activeQueueFilter === 'PENDING') return t.status === 'PENDING';
       if (activeQueueFilter === 'ROUTING') return t.status === 'ROUTING';
       if (activeQueueFilter === 'IN_PROGRESS') {
-        return t.status === 'ARRIVED' || t.status === 'IN_PROGRESS';
+        return t.status === 'ASSIGNED' || t.status === 'ARRIVED' || t.status === 'IN_PROGRESS';
       }
       if (activeQueueFilter === 'AWAITING_CONFIRMATION') {
         return t.status === 'AWAITING_CUSTOMER_CONFIRMATION';
@@ -158,7 +160,7 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Top KPI Metric Tiles Row (Matches Stitch 7b563b1b...) */}
+      {/* Top KPI Metric Tiles Row */}
       <div className="row g-3 mb-4">
         <div className="col-6 col-md-4 col-xl-2">
           <StatTile
@@ -194,7 +196,7 @@ export default function DashboardPage() {
           <StatTile
             title="FIELD EXECUTION"
             value={metrics.inProgress}
-            subtitle="Arrived & in progress"
+            subtitle="Assigned, arrived & active"
             icon="engineering"
             accentColor="primary"
             onClick={() => setActiveQueueFilter('IN_PROGRESS')}
@@ -299,6 +301,15 @@ export default function DashboardPage() {
                   <tbody className="font-body small" style={{ fontSize: '13px' }}>
                     {queueTickets.slice(0, 10).map((ticket) => {
                       const shortId = ticket.id.slice(0, 8).toUpperCase();
+                      const summary = ticket.description
+                        ? ticket.description.length > 55
+                          ? ticket.description.slice(0, 55) + '...'
+                          : ticket.description
+                        : ticket.title || 'Service Request';
+                      const categoryName = ticket.category?.name || ticket.service_category?.name || 'General';
+                      const residentName = ticket.contact_name || ticket.customer?.full_name || 'Resident';
+                      const location = ticket.location || ticket.customer?.default_location || 'Tower A';
+
                       return (
                         <tr
                           key={ticket.id}
@@ -308,7 +319,7 @@ export default function DashboardPage() {
                           <td className="ps-3 font-mono fw-semibold text-secondary">#{shortId}</td>
                           <td>
                             <div className="d-flex align-items-center gap-1">
-                              <span className="fw-semibold text-on-surface">{ticket.title}</span>
+                              <span className="fw-semibold text-on-surface">{summary}</span>
                               {ticket.is_urgent && (
                                 <span className="badge bg-danger text-white font-label" style={{ fontSize: '9px' }}>
                                   URGENT
@@ -316,16 +327,16 @@ export default function DashboardPage() {
                               )}
                             </div>
                             <div className="text-secondary small font-mono">
-                              {ticket.customer?.full_name || 'Resident'}
+                              {residentName}
                             </div>
                           </td>
                           <td>
                             <span className="badge bg-surface-container text-on-surface border border-outline-variant font-label" style={{ fontSize: '11px' }}>
-                              {ticket.service_category?.name || 'General'}
+                              {categoryName}
                             </span>
                           </td>
                           <td>
-                            <div className="text-on-surface small">{ticket.customer?.default_location || 'Tower A'}</div>
+                            <div className="text-on-surface small">{location}</div>
                           </td>
                           <td>
                             <StatusBadge status={ticket.status} />
@@ -382,13 +393,22 @@ export default function DashboardPage() {
               ) : (
                 <div className="vstack gap-2">
                   {onDutyTechs.map((tech) => {
+                    const maxJobs = tech.max_workload || tech.max_concurrent_jobs || 1;
+                    const currentJobs = tech.current_workload || 0;
                     const workloadPercent = Math.min(
                       100,
-                      (tech.current_workload / (tech.max_concurrent_jobs || 1)) * 100
+                      Math.max(0, (currentJobs / maxJobs) * 100)
                     );
                     let barColor = 'bg-success';
                     if (workloadPercent >= 60) barColor = 'bg-warning';
                     if (workloadPercent >= 90) barColor = 'bg-danger';
+
+                    const techName = tech.full_name || tech.name || 'Specialist';
+                    const ratingValue = tech.overall_rating != null
+                      ? Number(tech.overall_rating).toFixed(2)
+                      : tech.rating != null
+                      ? Number(tech.rating).toFixed(2)
+                      : '5.00';
 
                     return (
                       <div
@@ -396,9 +416,9 @@ export default function DashboardPage() {
                         className="p-2 bg-surface-container-lowest rounded border border-outline-variant"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
-                          <div className="fw-semibold text-on-surface small">{tech.name}</div>
+                          <div className="fw-semibold text-on-surface small">{techName}</div>
                           <span className="font-mono small text-secondary" style={{ fontSize: '11px' }}>
-                            ★ {tech.rating?.toFixed(2) || '5.00'}
+                            ★ {ratingValue}
                           </span>
                         </div>
 
@@ -411,7 +431,7 @@ export default function DashboardPage() {
                             ></div>
                           </div>
                           <span className="font-mono text-secondary small" style={{ fontSize: '10px' }}>
-                            {tech.current_workload}/{tech.max_concurrent_jobs}
+                            {currentJobs}/{maxJobs}
                           </span>
                         </div>
                       </div>
@@ -428,7 +448,7 @@ export default function DashboardPage() {
                   OFF DUTY ({offDutyTechs.length})
                 </div>
                 <div className="text-secondary small font-mono">
-                  {offDutyTechs.map((t) => t.name).join(', ')}
+                  {offDutyTechs.map((t) => t.full_name || t.name).join(', ')}
                 </div>
               </div>
             )}

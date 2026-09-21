@@ -26,7 +26,7 @@ export default function TechnicianPortalPage() {
 
   const [tab, setTab] = useState('PIPELINE'); // 'PIPELINE', 'OFFERS', 'HISTORY'
 
-  // Load technician list and tickets
+  // Load technician list and tickets with assignment history
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,7 +38,6 @@ export default function TechnicianPortalPage() {
       ]);
 
       setTechnicians(techList || []);
-      setAllTickets(ticketList || []);
 
       // Determine active technician
       let targetTech = null;
@@ -54,6 +53,41 @@ export default function TechnicianPortalPage() {
       if (targetTech) {
         setSelectedTechId(targetTech.id);
       }
+
+      // Fetch assignment histories for non-cancelled tickets to associate with active technician
+      const activeOrRelevantTickets = (ticketList || []).filter(
+        (t) => t.status !== 'CANCELLED'
+      );
+
+      const ticketAssignments = await Promise.all(
+        activeOrRelevantTickets.map(async (t) => {
+          try {
+            const list = await assignmentsApi.listByTicket(t.id);
+            return { ticketId: t.id, assignments: list || [] };
+          } catch {
+            return { ticketId: t.id, assignments: [] };
+          }
+        })
+      );
+
+      const enrichedTickets = (ticketList || []).map((t) => {
+        const item = ticketAssignments.find((ta) => ta.ticketId === t.id);
+        const assignments = item ? item.assignments : [];
+        const activeAssignment = assignments.find(
+          (a) => a.status === 'OFFERED' || a.status === 'DEFERRED'
+        );
+        const acceptedAssignment = assignments.find(
+          (a) => a.status === 'ACCEPTED' || a.status === 'COMPLETED'
+        );
+        return {
+          ...t,
+          assignments,
+          active_assignment: activeAssignment || null,
+          accepted_assignment: acceptedAssignment || null,
+        };
+      });
+
+      setAllTickets(enrichedTickets);
     } catch (err) {
       setError(err.message || 'Failed to load technician portal data.');
     } finally {
@@ -98,7 +132,7 @@ export default function TechnicianPortalPage() {
   async function handleAskLater(assignmentId) {
     try {
       await assignmentsApi.deferAssignment(assignmentId, activeTechnician?.id);
-      showSuccess('Offer deferred (Ask Me Later). You can decide before the original timer expires.');
+      showSuccess('Offer deferred (Ask Me Later). You can decide before the timer expires.');
       await loadData();
     } catch (err) {
       showError(err.message || 'Failed to defer job offer.');
@@ -159,18 +193,35 @@ export default function TechnicianPortalPage() {
     const history = [];
 
     allTickets.forEach((t) => {
-      // Check active assignment match or direct technician match
-      const isOffer = t.status === 'ROUTING' && t.active_assignment?.technician_id === activeTechnician.id;
-      const isMyJob = t.technician_id === activeTechnician.id || t.active_assignment?.technician_id === activeTechnician.id;
+      // 1. Pending Offers for this technician (OFFERED or DEFERRED in ROUTING status)
+      const hasOfferForMe =
+        t.status === 'ROUTING' &&
+        t.active_assignment?.technician_id === activeTechnician.id;
 
-      if (isOffer) {
+      if (hasOfferForMe) {
         offers.push({ ticket: t, assignment: t.active_assignment });
-      } else if (isMyJob) {
-        if (t.status === 'ASSIGNED' || t.status === 'ARRIVED' || t.status === 'IN_PROGRESS') {
-          active.push(t);
-        } else if (t.status === 'AWAITING_CUSTOMER_CONFIRMATION' || t.status === 'RESOLVED' || t.status === 'CLOSED') {
-          history.push(t);
-        }
+        return;
+      }
+
+      // 2. Active Jobs for this technician (ASSIGNED, ARRIVED, IN_PROGRESS)
+      const isMyActiveJob =
+        (t.status === 'ASSIGNED' || t.status === 'ARRIVED' || t.status === 'IN_PROGRESS') &&
+        (t.accepted_assignment?.technician_id === activeTechnician.id ||
+          t.assignments?.some((a) => a.technician_id === activeTechnician.id && a.status === 'ACCEPTED'));
+
+      if (isMyActiveJob) {
+        active.push(t);
+        return;
+      }
+
+      // 3. Completed / Historical Jobs for this technician
+      const isMyCompletedJob =
+        (t.status === 'AWAITING_CUSTOMER_CONFIRMATION' || t.status === 'RESOLVED' || t.status === 'CLOSED') &&
+        (t.accepted_assignment?.technician_id === activeTechnician.id ||
+          t.assignments?.some((a) => a.technician_id === activeTechnician.id && (a.status === 'ACCEPTED' || a.status === 'COMPLETED')));
+
+      if (isMyCompletedJob) {
+        history.push(t);
       }
     });
 
@@ -178,11 +229,15 @@ export default function TechnicianPortalPage() {
   }, [allTickets, activeTechnician]);
 
   // Primary active job to feature on the execution stepper
-  const currentExecutionJob = techJobs.active[0] || (techJobs.history.length > 0 && techJobs.history[0].status === 'AWAITING_CUSTOMER_CONFIRMATION' ? techJobs.history[0] : null);
+  const currentExecutionJob =
+    techJobs.active[0] ||
+    (techJobs.history.length > 0 && techJobs.history[0].status === 'AWAITING_CUSTOMER_CONFIRMATION'
+      ? techJobs.history[0]
+      : null);
 
   return (
     <div className="pb-5">
-      {/* Top Header with Technician Switcher (for Admins) & Brand (Matches Stitch ee416550...) */}
+      {/* Top Header with Technician Switcher (for Admins) & Brand */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <div className="d-flex align-items-center gap-2">
@@ -230,7 +285,7 @@ export default function TechnicianPortalPage() {
         />
       ) : (
         <div className="vstack gap-4">
-          {/* Top Controls: Shift Status & Workload Bar (Matches Stitch ee416550...) */}
+          {/* Top Controls: Shift Status & Workload Bar */}
           <div className="row g-3">
             {/* Shift Status Card */}
             <div className="col-12 col-md-6 col-lg-5">
@@ -293,7 +348,7 @@ export default function TechnicianPortalPage() {
             </div>
           </div>
 
-          {/* Section A: Active Offers (Matches Stitch 5ceabd60... / ee416550...) */}
+          {/* Section A: Active Offers */}
           {techJobs.offers.length > 0 && (
             <div>
               <div className="d-flex align-items-center gap-2 mb-2">
@@ -318,7 +373,7 @@ export default function TechnicianPortalPage() {
             </div>
           )}
 
-          {/* Section B: Current Execution Job Stepper (Matches Stitch ee416550...) */}
+          {/* Section B: Current Execution Job Stepper */}
           {currentExecutionJob ? (
             <div>
               <ActiveJobExecutionCard
@@ -377,23 +432,33 @@ export default function TechnicianPortalPage() {
                   <div className="text-center py-4 text-secondary small">No active jobs in pipeline.</div>
                 ) : (
                   <div className="vstack gap-2">
-                    {techJobs.active.map((t) => (
-                      <div
-                        key={t.id}
-                        className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2"
-                      >
-                        <div>
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                            <span className="font-mono text-primary fw-bold small">#{t.id.slice(0, 8).toUpperCase()}</span>
-                            <span className="fw-semibold text-on-surface">{t.title}</span>
+                    {techJobs.active.map((t) => {
+                      const summary = t.description
+                        ? t.description.length > 55
+                          ? t.description.slice(0, 55) + '...'
+                          : t.description
+                        : t.title || 'Service Request';
+                      const category = t.category?.name || t.service_category?.name || 'General';
+                      const loc = t.location || t.customer?.default_location || 'Tower A';
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2"
+                        >
+                          <div>
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                              <span className="font-mono text-primary fw-bold small">#{t.id.slice(0, 8).toUpperCase()}</span>
+                              <span className="fw-semibold text-on-surface">{summary}</span>
+                            </div>
+                            <div className="text-secondary small font-mono">
+                              {category} • Unit {loc}
+                            </div>
                           </div>
-                          <div className="text-secondary small font-mono">
-                            {t.service_category?.name} • Unit {t.customer?.default_location || 'Tower A'}
-                          </div>
+                          <StatusBadge status={t.status} />
                         </div>
-                        <StatusBadge status={t.status} />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
               )}
@@ -403,20 +468,29 @@ export default function TechnicianPortalPage() {
                   <div className="text-center py-4 text-secondary small">No pending offers.</div>
                 ) : (
                   <div className="vstack gap-2">
-                    {techJobs.offers.map((offer) => (
-                      <div
-                        key={offer.assignment.id}
-                        className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex justify-content-between align-items-center"
-                      >
-                        <div>
-                          <div className="fw-semibold text-on-surface">{offer.ticket.title}</div>
-                          <div className="text-secondary small font-mono">
-                            Category: {offer.ticket.service_category?.name} • Status: {offer.assignment.status}
+                    {techJobs.offers.map((offer) => {
+                      const summary = offer.ticket.description
+                        ? offer.ticket.description.length > 55
+                          ? offer.ticket.description.slice(0, 55) + '...'
+                          : offer.ticket.description
+                        : offer.ticket.title || 'Service Request';
+                      const category = offer.ticket.category?.name || offer.ticket.service_category?.name || 'General';
+
+                      return (
+                        <div
+                          key={offer.assignment.id}
+                          className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex justify-content-between align-items-center"
+                        >
+                          <div>
+                            <div className="fw-semibold text-on-surface">{summary}</div>
+                            <div className="text-secondary small font-mono">
+                              Category: {category} • Status: {offer.assignment.status}
+                            </div>
                           </div>
+                          <StatusBadge status={offer.ticket.status} />
                         </div>
-                        <StatusBadge status={offer.ticket.status} />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
               )}
@@ -426,20 +500,29 @@ export default function TechnicianPortalPage() {
                   <div className="text-center py-4 text-secondary small">No completed service history yet.</div>
                 ) : (
                   <div className="vstack gap-2">
-                    {techJobs.history.map((t) => (
-                      <div
-                        key={t.id}
-                        className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex justify-content-between align-items-center"
-                      >
-                        <div>
-                          <div className="fw-semibold text-on-surface">{t.title}</div>
-                          <div className="text-secondary small font-mono">
-                            Completed • Unit {t.customer?.default_location || 'Tower A'}
+                    {techJobs.history.map((t) => {
+                      const summary = t.description
+                        ? t.description.length > 55
+                          ? t.description.slice(0, 55) + '...'
+                          : t.description
+                        : t.title || 'Service Request';
+                      const loc = t.location || t.customer?.default_location || 'Tower A';
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="p-3 rounded bg-surface-container-lowest border border-outline-variant d-flex justify-content-between align-items-center"
+                        >
+                          <div>
+                            <div className="fw-semibold text-on-surface">{summary}</div>
+                            <div className="text-secondary small font-mono">
+                              Completed • Unit {loc}
+                            </div>
                           </div>
+                          <StatusBadge status={t.status} />
                         </div>
-                        <StatusBadge status={t.status} />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
               )}

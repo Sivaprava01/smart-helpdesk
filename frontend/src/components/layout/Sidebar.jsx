@@ -18,9 +18,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: '/categories', label: 'Service Categories', icon: 'category', roles: ['ADMIN', 'DISPATCHER'] },
   ];
 
-  const visibleNavItems = allNavItems.filter(
-    (item) => item.roles.includes(userRole) || userRole === 'ADMIN'
-  );
+  const visibleNavItems = allNavItems.filter((item) => item.roles.includes(userRole));
 
   const initials = user?.email
     ? user.email.slice(0, 2).toUpperCase()
@@ -64,6 +62,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <NavLink
             key={item.path}
             to={item.path}
+            end
             className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
