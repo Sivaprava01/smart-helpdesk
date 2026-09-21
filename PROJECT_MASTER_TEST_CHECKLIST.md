@@ -34,11 +34,11 @@
 The **Administrator** has full global permissions across all operational dashboards, master data entities, service categories, routing simulations, technician capacity settings, and ticket lifecycles.
 
 ### 1.1 Authentication, Login & Session
-- [ ] **Admin Login**: Navigate to `/login`, click `[ 🛡️ Admin ]` demo preset (or enter `admin@smarthelpdesk.com` / `AdminPass123!`), and submit.
-  - [ ] Request: `POST /api/v1/auth/login` returns `200 OK` with `access_token`, `refresh_token`, and `user.role === 'ADMIN'`.
-  - [ ] Redirect: Automatically redirects to `/dashboard`.
-  - [ ] Persistence: Refreshing browser (`F5`) stays logged in on `/dashboard` without returning to `/login` (`GET /api/v1/auth/me` validates session).
-- [ ] **Admin Navigation Scope**: Inspect `Sidebar`:
+- [ done ] **Admin Login**: Navigate to `/login`, click `[ 🛡️ Admin ]` demo preset (or enter `admin@smarthelpdesk.com` / `AdminPass123!`), and submit.
+  - [ done ] Request: `POST /api/v1/auth/login` returns `200 OK` with `access_token`, `refresh_token`, and `user.role === 'ADMIN'`.
+  - [done  ] Redirect: Automatically redirects to `/dashboard`.
+  - [done ] Persistence: Refreshing browser (`F5`) stays logged in on `/dashboard` without returning to `/login` (`GET /api/v1/auth/me` validates session).
+- [ done] **Admin Navigation Scope**: Inspect `Sidebar`:
   - [ ] Admin sees: `Operations Dashboard`, `Ticket Hub`, `Technician Capacity`, `Routing Engine`, `Resident Directory`, `Service Categories`, `Technician Field Portal ('My Jobs')`.
   - [ ] Admin profile badge at bottom displays `ADMIN` with initials `AD`.
 - [ ] **Logout Flow**: Click `Sign Out` button in sidebar.

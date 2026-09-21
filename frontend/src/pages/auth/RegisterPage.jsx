@@ -63,7 +63,7 @@ export default function RegisterPage() {
     try {
       setLoading(true);
       setError(null);
-      await register({
+      const user = await register({
         full_name: formData.full_name.trim(),
         email: formData.email.trim(),
         phone_number: formData.phone_number.trim(),
@@ -72,7 +72,7 @@ export default function RegisterPage() {
         password: formData.password,
       });
 
-      navigate('/technicians', { replace: true });
+      navigate(user?.role === 'ADMIN' || user?.role === 'DISPATCHER' ? '/dashboard' : '/tickets', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed. Please check your inputs.');
     } finally {

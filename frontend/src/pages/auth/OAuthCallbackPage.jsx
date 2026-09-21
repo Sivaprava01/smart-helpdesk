@@ -31,8 +31,9 @@ export default function OAuthCallbackPage() {
 
       try {
         const redirectUri = `${window.location.origin}/auth/google/callback`;
-        await loginWithOAuth({ code, redirectUri });
-        navigate('/technicians', { replace: true });
+        const user = await loginWithOAuth({ code, redirectUri });
+        const target = user?.role === 'TECHNICIAN' ? '/technician/jobs' : (user?.role === 'ADMIN' || user?.role === 'DISPATCHER' ? '/dashboard' : '/tickets');
+        navigate(target, { replace: true });
       } catch (err) {
         setError(err.message || 'Failed to complete Google OAuth authentication with server.');
         setProcessing(false);

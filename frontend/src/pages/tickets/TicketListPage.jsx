@@ -86,21 +86,21 @@ export default function TicketListPage() {
   // Filtered List
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
-      // Search filter (ID, Title, Description, Customer Name)
+      // Search filter (ID, Description, Customer Name, Contact Name)
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
-        const matchesTitle = t.title?.toLowerCase().includes(query);
         const matchesDesc = t.description?.toLowerCase().includes(query);
         const matchesId = t.id?.toLowerCase().includes(query);
         const matchesCust = t.customer?.full_name?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesId && !matchesCust) return false;
+        const matchesContact = t.contact_name?.toLowerCase().includes(query);
+        if (!matchesDesc && !matchesId && !matchesCust && !matchesContact) return false;
       }
 
       // Status filter
       if (statusFilter && t.status !== statusFilter) return false;
 
-      // Category filter
-      if (categoryFilter && t.service_category_id !== categoryFilter) return false;
+      // Category filter (uses category_id with fallback to category.id)
+      if (categoryFilter && (t.category_id || t.category?.id) !== categoryFilter) return false;
 
       // Urgency filter
       if (urgentOnly && !t.is_urgent) return false;
@@ -279,20 +279,19 @@ export default function TicketListPage() {
                       </td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
-                          <span className="fw-semibold text-on-surface">{ticket.title}</span>
+                          <span className="fw-semibold text-on-surface text-truncate" style={{ maxWidth: '280px' }}>
+                            {ticket.description}
+                          </span>
                           {ticket.is_urgent && (
                             <span className="badge bg-danger text-white font-label" style={{ fontSize: '9px' }}>
                               URGENT
                             </span>
                           )}
                         </div>
-                        <div className="text-secondary text-truncate" style={{ maxWidth: '280px', fontSize: '11px' }}>
-                          {ticket.description}
-                        </div>
                       </td>
                       <td>
                         <span className="badge bg-surface-container text-on-surface border border-outline-variant font-label" style={{ fontSize: '11px' }}>
-                          {ticket.service_category?.name || 'General'}
+                          {ticket.category?.name || ticket.service_category?.name || 'General'}
                         </span>
                       </td>
                       <td>

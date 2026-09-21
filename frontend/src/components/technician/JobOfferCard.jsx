@@ -18,6 +18,19 @@ export default function JobOfferCard({
 
   const shortId = ticket.id.slice(0, 8).toUpperCase();
   const isDeferred = assignment.status === 'DEFERRED';
+  const summaryTitle = ticket.description
+    ? ticket.description.length > 60
+      ? ticket.description.slice(0, 60) + '...'
+      : ticket.description
+    : ticket.title || 'Service Request';
+
+  const categoryName = ticket.category?.name || ticket.service_category?.name || 'General';
+  const locationText = ticket.location || ticket.customer?.default_location || 'Tower A';
+  const timingText = ticket.is_scheduled
+    ? ticket.scheduled_for
+      ? `Scheduled (${new Date(ticket.scheduled_for).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })})`
+      : 'Scheduled'
+    : 'Immediate (ASAP)';
 
   async function handleAccept() {
     try {
@@ -55,7 +68,7 @@ export default function JobOfferCard({
         }`}
         style={{ borderLeft: `6px solid ${ticket.is_urgent ? 'var(--color-error)' : 'var(--color-primary)'}` }}
       >
-        {/* Top Urgency Header (Matches Stitch 5ceabd60...) */}
+        {/* Top Urgency Header */}
         <div className="p-3 p-md-4 bg-surface-container-lowest border-bottom border-outline-variant d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div className="d-flex align-items-center gap-2">
             <span
@@ -76,7 +89,10 @@ export default function JobOfferCard({
 
           <div className="d-flex align-items-center gap-2">
             <span className="font-label text-secondary small text-uppercase">Time to Respond:</span>
-            <ActiveOfferTimer offeredAt={assignment.offered_at || ticket.updated_at} />
+            <ActiveOfferTimer
+              offeredAt={assignment.assigned_at || ticket.updated_at}
+              expiresAt={assignment.expires_at}
+            />
           </div>
         </div>
 
@@ -85,7 +101,7 @@ export default function JobOfferCard({
           <div className="row g-3 align-items-center">
             <div className="col-12 col-lg-8">
               <h3 className="font-headline h5 text-on-surface fw-bold mb-2">
-                {ticket.title}
+                {summaryTitle}
               </h3>
               <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
                 {ticket.description}
@@ -102,7 +118,7 @@ export default function JobOfferCard({
                       <span className="material-symbols-outlined text-primary" style={{ fontSize: '16px' }}>
                         build
                       </span>
-                      <span>{ticket.service_category?.name || 'General'}</span>
+                      <span>{categoryName}</span>
                     </span>
                   </div>
                 </div>
@@ -116,7 +132,7 @@ export default function JobOfferCard({
                       <span className="material-symbols-outlined text-primary" style={{ fontSize: '16px' }}>
                         location_on
                       </span>
-                      <span>{ticket.customer?.default_location || 'Tower A'}</span>
+                      <span>{locationText}</span>
                     </span>
                   </div>
                 </div>
@@ -130,14 +146,14 @@ export default function JobOfferCard({
                       <span className="material-symbols-outlined text-primary" style={{ fontSize: '16px' }}>
                         schedule
                       </span>
-                      <span>{ticket.time_preference === 'ASAP' ? 'Immediate (ASAP)' : 'Scheduled'}</span>
+                      <span>{timingText}</span>
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons (Matches Stitch ee416550... & 5ceabd60...) */}
+            {/* Action Buttons */}
             <div className="col-12 col-lg-4">
               <div className="vstack gap-2">
                 <Button
@@ -184,7 +200,7 @@ export default function JobOfferCard({
         onClose={() => setShowDeclineModal(false)}
         onConfirm={handleConfirmDecline}
         loading={actionInProgress === 'decline'}
-        ticketTitle={ticket.title}
+        ticketTitle={summaryTitle}
       />
     </>
   );

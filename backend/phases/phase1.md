@@ -64,16 +64,38 @@ smart-helpdesk/
 
 Current structure is approximately:
 
+
 smart-helpdesk/
 │
+├── .git/
+├── README.md
+│
 ├── backend/
+│   ├── .python-version
+│   ├── pyproject.toml
+│   ├── uv.lock
 │   ├── .venv/
+│   │
 │   ├── phases/
 │   │   └── backend/
+│   │       ├── phase1.md
+│   │       ├── phase2.md
+│   │       ├── phase3.md
+│   │       ├── phase4.md
+│   │       ├── phase5.md
+│   │       └── phase6.md
+│   │
 │   └── src/
 │       └── smart_helpdesk/
+│           ├── __init__.py
+│           ├── main.py
+│           │
 │           └── api/
+│               ├── __init__.py
+│               │
 │               └── routes/
+│                   ├── __init__.py
+│                   └── health.py
 │
 └── frontend/
 
@@ -117,37 +139,52 @@ ARCHITECTURE REQUIREMENTS
 
 Use this structure as the target for Phase 1:
 
-src/
-└── smart_helpdesk/
-    │
-    ├── __init__.py
-    ├── main.py
-    │
-    ├── core/
-    │   ├── __init__.py
-    │   ├── config.py
-    │   ├── logging.py
-    │   └── exceptions.py
-    │
-    └── api/
-        ├── __init__.py
-        │
-        ├── router.py
-        │
-        └── routes/
-            ├── __init__.py
-            └── health.py
-
-Also create:
-
-tests/
-├── __init__.py
-└── test_health.py
-
-Project root:
-
-.env.example
-
+smart-helpdesk/
+│
+├── .git/
+├── .gitignore
+├── README.md
+│
+├── backend/
+│   ├── .python-version
+│   ├── pyproject.toml
+│   ├── uv.lock
+│   ├── .env.example
+│   ├── .venv/
+│   │
+│   ├── phases/
+│   │   └── backend/
+│   │       ├── phase1.md
+│   │       ├── phase2.md
+│   │       ├── phase3.md
+│   │       ├── phase4.md
+│   │       ├── phase5.md
+│   │       └── phase6.md
+│   │
+│   ├── src/
+│   │   └── smart_helpdesk/
+│   │       ├── __init__.py
+│   │       ├── main.py
+│   │       │
+│   │       ├── core/
+│   │       │   ├── __init__.py
+│   │       │   ├── config.py
+│   │       │   ├── logging.py
+│   │       │   └── exceptions.py
+│   │       │
+│   │       └── api/
+│   │           ├── __init__.py
+│   │           ├── router.py
+│   │           │
+│   │           └── routes/
+│   │               ├── __init__.py
+│   │               └── health.py
+│   │
+│   └── tests/
+│       ├── __init__.py
+│       └── test_health.py
+│
+└── frontend/
 Do not create unnecessary directories such as:
 
 - models

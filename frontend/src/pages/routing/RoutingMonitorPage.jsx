@@ -273,7 +273,9 @@ export default function RoutingMonitorPage() {
                           </td>
                           <td>
                             <div className="d-flex align-items-center gap-1">
-                              <span className="fw-semibold text-on-surface">{t.title}</span>
+                              <span className="fw-semibold text-on-surface text-truncate" style={{ maxWidth: '240px' }}>
+                                {t.description}
+                              </span>
                               {t.is_urgent && (
                                 <span className="badge bg-danger text-white font-label" style={{ fontSize: '9px' }}>
                                   URGENT
@@ -286,7 +288,7 @@ export default function RoutingMonitorPage() {
                           </td>
                           <td>
                             <span className="badge bg-surface-container text-on-surface border border-outline-variant font-label" style={{ fontSize: '11px' }}>
-                              {t.service_category?.name || 'General'}
+                              {t.category?.name || t.service_category?.name || 'General'}
                             </span>
                           </td>
                           <td>

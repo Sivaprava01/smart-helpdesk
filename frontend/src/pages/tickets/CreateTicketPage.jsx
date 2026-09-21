@@ -19,10 +19,12 @@ export default function CreateTicketPage() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State
+  // Form State (strictly synchronized with backend TicketCreate schema)
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  const [title, setTitle] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [scheduleType, setScheduleType] = useState('ASAP'); // 'ASAP' or 'SCHEDULED'
@@ -42,15 +44,28 @@ export default function CreateTicketPage() {
         setCategories(cats);
         setCustomers(custs);
 
-        // Auto-select logged-in resident customer if available
-        if (user?.customer_id) {
-          setSelectedCustomerId(user.customer_id);
-        } else if (custs.length > 0) {
-          setSelectedCustomerId(custs[0].id);
-        }
-
         if (cats.length > 0) {
           setSelectedCategoryId(cats[0].id);
+        }
+
+        // Auto-select customer and auto-populate contact details
+        let targetCust = null;
+        if (user?.customer_id) {
+          targetCust = custs.find((c) => c.id === user.customer_id);
+          if (targetCust) {
+            setSelectedCustomerId(targetCust.id);
+          } else {
+            setSelectedCustomerId(user.customer_id);
+          }
+        } else if (custs.length > 0) {
+          targetCust = custs[0];
+          setSelectedCustomerId(targetCust.id);
+        }
+
+        if (targetCust) {
+          setContactName(targetCust.full_name || '');
+          setContactPhone(targetCust.phone_number || '');
+          setLocation(targetCust.default_location || '');
         }
       } catch (err) {
         showError(err.message || 'Failed to load categories or customers.');
@@ -61,6 +76,16 @@ export default function CreateTicketPage() {
 
     loadData();
   }, [user, showError]);
+
+  function handleCustomerSelect(custId) {
+    setSelectedCustomerId(custId);
+    const targetCust = customers.find((c) => c.id === custId);
+    if (targetCust) {
+      setContactName(targetCust.full_name || '');
+      setContactPhone(targetCust.phone_number || '');
+      setLocation(targetCust.default_location || '');
+    }
+  }
 
   function getCategoryIcon(name) {
     const n = name.toLowerCase();
@@ -78,8 +103,14 @@ export default function CreateTicketPage() {
     const errs = {};
     if (!selectedCustomerId) errs.customer = 'Please select or enter customer details.';
     if (!selectedCategoryId) errs.category = 'Please choose a service category.';
-    if (!title.trim()) errs.title = 'Title or brief summary is required.';
-    if (!description.trim()) errs.description = 'Please provide a description of the issue.';
+    if (!contactName.trim()) errs.contact_name = 'Contact name is required.';
+    if (!contactPhone.trim() || contactPhone.trim().length < 5) {
+      errs.contact_phone = 'Contact phone number is required (minimum 5 digits).';
+    }
+    if (!location.trim()) errs.location = 'Service location / apartment address is required.';
+    if (!description.trim() || description.trim().length < 5) {
+      errs.description = 'Please provide a detailed description (minimum 5 characters).';
+    }
 
     if (scheduleType === 'SCHEDULED') {
       if (!scheduledDateTime) {
@@ -102,14 +133,17 @@ export default function CreateTicketPage() {
 
     try {
       setSubmitting(true);
+      const isScheduled = scheduleType === 'SCHEDULED';
       const payload = {
         customer_id: selectedCustomerId,
-        service_category_id: selectedCategoryId,
-        title: title.trim(),
+        category_id: selectedCategoryId,
+        contact_name: contactName.trim(),
+        contact_phone: contactPhone.trim(),
+        location: location.trim(),
         description: description.trim(),
-        is_urgent: isUrgent,
+        is_scheduled: isScheduled,
         scheduled_for:
-          scheduleType === 'SCHEDULED' && scheduledDateTime
+          isScheduled && scheduledDateTime
             ? new Date(scheduledDateTime).toISOString()
             : null,
       };
@@ -117,7 +151,7 @@ export default function CreateTicketPage() {
       const newTicket = await ticketsApi.create(payload);
 
       // Auto-dispatch assignment offer if selected and ticket is ASAP
-      if (autoDispatch && scheduleType === 'ASAP') {
+      if (autoDispatch && !isScheduled) {
         try {
           await assignmentsApi.startAssignment(newTicket.id);
           showSuccess('Ticket created and assignment offer dispatched to top-ranked specialist.');
@@ -151,9 +185,9 @@ export default function CreateTicketPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="row g-4">
-          {/* Left Column: Customer & Location */}
+          {/* Left Column: Customer, Category & Problem Description */}
           <div className="col-12 col-lg-7">
-            {/* Customer Details Card */}
+            {/* Customer & Contact Details Card */}
             <div className="sh-card bg-white p-4 mb-4 border border-outline-variant">
               <h3 className="font-headline h6 text-on-surface mb-3 d-flex align-items-center gap-2 border-bottom pb-2">
                 <span className="material-symbols-outlined text-primary">person</span>
@@ -161,7 +195,7 @@ export default function CreateTicketPage() {
               </h3>
 
               {user?.role === 'CUSTOMER' && user?.customer_id ? (
-                <div className="p-3 bg-surface-container-low rounded-2 border border-outline-variant mb-2">
+                <div className="p-3 bg-surface-container-low rounded-2 border border-outline-variant mb-3">
                   <div className="fw-semibold text-on-surface small">Submitted for Your Profile:</div>
                   <div className="text-secondary small font-mono">{user.email}</div>
                 </div>
@@ -173,7 +207,7 @@ export default function CreateTicketPage() {
                   <select
                     className={`form-select ${errors.customer ? 'is-invalid' : ''}`}
                     value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                    onChange={(e) => handleCustomerSelect(e.target.value)}
                     disabled={loadingInitial}
                   >
                     <option value="">Select resident from directory...</option>
@@ -189,9 +223,53 @@ export default function CreateTicketPage() {
                   </div>
                 </div>
               )}
+
+              <div className="row g-3">
+                <div className="col-12 col-sm-6">
+                  <label className="form-label font-label text-secondary mb-1">
+                    Contact Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`form-control ${errors.contact_name ? 'is-invalid' : ''}`}
+                    placeholder="Resident / contact person"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                  />
+                  {errors.contact_name && <div className="invalid-feedback">{errors.contact_name}</div>}
+                </div>
+
+                <div className="col-12 col-sm-6">
+                  <label className="form-label font-label text-secondary mb-1">
+                    Contact Phone <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    className={`form-control ${errors.contact_phone ? 'is-invalid' : ''}`}
+                    placeholder="e.g. +1-555-0199"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                  />
+                  {errors.contact_phone && <div className="invalid-feedback">{errors.contact_phone}</div>}
+                </div>
+
+                <div className="col-12">
+                  <label className="form-label font-label text-secondary mb-1">
+                    Service Location / Unit <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`form-control ${errors.location ? 'is-invalid' : ''}`}
+                    placeholder="e.g. Tower B, Apt 402 or Main Lobby"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                  {errors.location && <div className="invalid-feedback">{errors.location}</div>}
+                </div>
+              </div>
             </div>
 
-            {/* Service Category Selection (Matches Stitch 8b367a16...) */}
+            {/* Service Category Selection */}
             <div className="sh-card bg-white p-4 mb-4 border border-outline-variant">
               <h3 className="font-headline h6 text-on-surface mb-3 d-flex align-items-center gap-2 border-bottom pb-2">
                 <span className="material-symbols-outlined text-primary">category</span>
@@ -227,26 +305,12 @@ export default function CreateTicketPage() {
               </div>
             </div>
 
-            {/* Request Summary & Description */}
+            {/* Problem Description Card */}
             <div className="sh-card bg-white p-4 border border-outline-variant">
               <h3 className="font-headline h6 text-on-surface mb-3 d-flex align-items-center gap-2 border-bottom pb-2">
                 <span className="material-symbols-outlined text-primary">description</span>
-                <span>Issue Summary & Description</span>
+                <span>Problem Description</span>
               </h3>
-
-              <div className="mb-3">
-                <label className="form-label font-label text-secondary mb-1">
-                  Brief Title / Issue Summary <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className={`form-control ${errors.title ? 'is-invalid' : ''}`}
-                  placeholder="e.g. Water leak under master bathroom sink"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                {errors.title && <div className="invalid-feedback">{errors.title}</div>}
-              </div>
 
               <div className="mb-3">
                 <label className="form-label font-label text-secondary mb-1">
@@ -255,7 +319,7 @@ export default function CreateTicketPage() {
                 <textarea
                   rows="4"
                   className={`form-control ${errors.description ? 'is-invalid' : ''}`}
-                  placeholder="Describe the issue symptoms, affected rooms, or any immediate safety hazards..."
+                  placeholder="Describe the issue symptoms, affected rooms, or any immediate safety hazards (minimum 5 characters)..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 ></textarea>
