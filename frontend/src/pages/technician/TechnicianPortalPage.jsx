@@ -16,6 +16,11 @@ export default function TechnicianPortalPage() {
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
 
+  // Defensive role check: Only TECHNICIAN role may render field portal
+  if (user?.role !== 'TECHNICIAN') {
+    return null;
+  }
+
   const [technicians, setTechnicians] = useState([]);
   const [activeTechnician, setActiveTechnician] = useState(null);
   const [selectedTechId, setSelectedTechId] = useState(null);
@@ -39,12 +44,10 @@ export default function TechnicianPortalPage() {
 
       setTechnicians(techList || []);
 
-      // Determine active technician
+      // Determine active technician strictly for this authenticated technician
       let targetTech = null;
-      if (user?.role === 'TECHNICIAN' && user?.technician_id) {
+      if (user?.technician_id) {
         targetTech = (techList || []).find((t) => t.id === user.technician_id);
-      } else if (selectedTechId) {
-        targetTech = (techList || []).find((t) => t.id === selectedTechId);
       } else if (techList && techList.length > 0) {
         targetTech = techList[0];
       }

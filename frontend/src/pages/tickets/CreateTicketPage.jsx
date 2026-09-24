@@ -176,11 +176,18 @@ export default function CreateTicketPage() {
       <PageHeader
         title="Create Service Request"
         subtitle="Submit maintenance ticket for automated technician routing and dispatch."
-        breadcrumbs={[
-          { label: 'Operations', href: '/dashboard' },
-          { label: 'Tickets', href: '/tickets' },
-          { label: 'New Request' },
-        ]}
+        breadcrumbs={
+          user?.role === 'ADMIN' || user?.role === 'DISPATCHER'
+            ? [
+                { label: 'Operations', href: '/dashboard' },
+                { label: 'Tickets', href: '/tickets' },
+                { label: 'New Request' },
+              ]
+            : [
+                { label: 'Tickets', href: '/tickets' },
+                { label: 'New Request' },
+              ]
+        }
       />
 
       <form onSubmit={handleSubmit}>

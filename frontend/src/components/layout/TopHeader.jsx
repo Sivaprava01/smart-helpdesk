@@ -45,12 +45,14 @@ export default function TopHeader({ onToggleSidebar }) {
           </span>
         </div>
 
-        <Link to="/tickets/new" className="btn-sh-primary btn-sm text-decoration-none">
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-            add
-          </span>
-          <span>+ New Ticket</span>
-        </Link>
+        {user?.role !== 'TECHNICIAN' && (
+          <Link to="/tickets/new" className="btn-sh-primary btn-sm text-decoration-none">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+              add
+            </span>
+            <span>+ New Ticket</span>
+          </Link>
+        )}
       </div>
     </header>
   );

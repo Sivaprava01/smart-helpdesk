@@ -11,7 +11,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: '/dashboard', label: 'Operations Dashboard', icon: 'dashboard', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/tickets', label: userRole === 'CUSTOMER' ? 'My Tickets' : 'Ticket Hub', icon: 'confirmation_number', roles: ['ADMIN', 'DISPATCHER', 'TECHNICIAN', 'CUSTOMER'] },
     { path: '/tickets/new', label: 'Request Service', icon: 'add_circle', roles: ['CUSTOMER'] },
-    { path: '/technician/jobs', label: 'My Field Jobs', icon: 'assignment_ind', roles: ['ADMIN', 'TECHNICIAN'] },
+    { path: '/technician/jobs', label: 'My Field Jobs', icon: 'assignment_ind', roles: ['TECHNICIAN'] },
     { path: '/technicians', label: 'Technician Capacity', icon: 'engineering', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/routing', label: 'Routing Engine', icon: 'route', roles: ['ADMIN', 'DISPATCHER'] },
     { path: '/customers', label: 'Resident Directory', icon: 'groups', roles: ['ADMIN', 'DISPATCHER'] },

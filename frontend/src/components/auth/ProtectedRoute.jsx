@@ -35,8 +35,7 @@ export default function ProtectedRoute({
   // Check role authorization if specified
   if (allowedRoles && Array.isArray(allowedRoles) && allowedRoles.length > 0) {
     const userRole = user?.role;
-    // Admins always have access
-    const isAllowed = userRole === 'ADMIN' || allowedRoles.includes(userRole);
+    const isAllowed = allowedRoles.includes(userRole);
 
     if (!isAllowed) {
       const destination = redirectTo || getRoleDefaultRoute(userRole);

@@ -10,10 +10,15 @@ import { ticketsApi } from '../../api/tickets';
 import { categoriesApi } from '../../api/categories';
 import { assignmentsApi } from '../../api/assignments';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TicketListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+
+  const isCustomer = user?.role === 'CUSTOMER';
+  const isAdminOrDispatcher = user?.role === 'ADMIN' || user?.role === 'DISPATCHER';
 
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -35,12 +40,13 @@ export default function TicketListPage() {
     try {
       setLoading(true);
       setError(null);
+      const params = isCustomer && user?.customer_id ? { customer_id: user.customer_id } : {};
       const [ticketList, catList] = await Promise.all([
-        ticketsApi.list(),
+        ticketsApi.list(params),
         categoriesApi.list(),
       ]);
-      setTickets(ticketList);
-      setCategories(catList);
+      setTickets(ticketList || []);
+      setCategories(catList || []);
     } catch (err) {
       setError(err.message || 'Failed to load tickets.');
     } finally {
@@ -50,7 +56,7 @@ export default function TicketListPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
 
   async function handleProcessExpired() {
     try {
@@ -86,6 +92,11 @@ export default function TicketListPage() {
   // Filtered List
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
+      // If Customer, restrict strictly to own customer tickets
+      if (isCustomer && user?.customer_id && t.customer_id && t.customer_id !== user.customer_id) {
+        return false;
+      }
+
       // Search filter (ID, Description, Customer Name, Contact Name)
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
@@ -107,7 +118,7 @@ export default function TicketListPage() {
 
       return true;
     });
-  }, [tickets, searchTerm, statusFilter, categoryFilter, urgentOnly]);
+  }, [tickets, searchTerm, statusFilter, categoryFilter, urgentOnly, isCustomer, user]);
 
   // Paginated List
   const totalPages = Math.ceil(filteredTickets.length / pageSize) || 1;
@@ -119,25 +130,37 @@ export default function TicketListPage() {
   return (
     <div>
       <PageHeader
-        title="Ticket Management Hub"
-        subtitle="Monitor, dispatch, and resolve active service requests across all facility zones."
-        breadcrumbs={[{ label: 'Operations', href: '/dashboard' }, { label: 'Tickets' }]}
+        title={isCustomer ? 'My Service Tickets' : 'Ticket Management Hub'}
+        subtitle={
+          isCustomer
+            ? 'Track the real-time status and resolution of your maintenance requests.'
+            : 'Monitor, dispatch, and resolve active service requests across all facility zones.'
+        }
+        breadcrumbs={
+          isAdminOrDispatcher
+            ? [{ label: 'Operations', href: '/dashboard' }, { label: 'Tickets' }]
+            : [{ label: 'Tickets' }]
+        }
         actions={
           <div className="d-flex gap-2">
-            <Button
-              variant="secondary"
-              icon="update"
-              onClick={handleProcessExpired}
-              loading={processingExpired}
-            >
-              Process Expired Offers
-            </Button>
-            <Link to="/tickets/new" className="btn-sh-primary text-decoration-none">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                add
-              </span>
-              <span>+ New Ticket</span>
-            </Link>
+            {isAdminOrDispatcher && (
+              <Button
+                variant="secondary"
+                icon="update"
+                onClick={handleProcessExpired}
+                loading={processingExpired}
+              >
+                Process Expired Offers
+              </Button>
+            )}
+            {user?.role !== 'TECHNICIAN' && (
+              <Link to="/tickets/new" className="btn-sh-primary text-decoration-none">
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  add
+                </span>
+                <span>+ New Ticket</span>
+              </Link>
+            )}
           </div>
         }
       />

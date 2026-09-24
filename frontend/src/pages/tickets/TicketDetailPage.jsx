@@ -102,9 +102,10 @@ export default function TicketDetailPage() {
   const shortId = ticket.id.slice(0, 8).toUpperCase();
   const isScheduled = Boolean(ticket.scheduled_for);
   const canDispatch = ticket.status === 'PENDING' || ticket.status === 'REOPENED';
-  const canCancel = ticket.status === 'PENDING';
   const isCustomer = user?.role === 'CUSTOMER';
   const isAdminOrDispatcher = user?.role === 'ADMIN' || user?.role === 'DISPATCHER';
+  const isOwnTicket = isCustomer && (!ticket.customer_id || ticket.customer_id === user?.customer_id);
+  const canCancel = ticket.status === 'PENDING' && (isAdminOrDispatcher || isOwnTicket);
 
   const assignedSpecialist =
     assignments.find((a) => a.status === 'ACCEPTED' || a.status === 'COMPLETED') ||
@@ -122,11 +123,18 @@ export default function TicketDetailPage() {
           hour: '2-digit',
           minute: '2-digit',
         })}`}
-        breadcrumbs={[
-          { label: 'Operations', href: '/dashboard' },
-          { label: 'Tickets', href: '/tickets' },
-          { label: `#${shortId}` },
-        ]}
+        breadcrumbs={
+          isAdminOrDispatcher
+            ? [
+                { label: 'Operations', href: '/dashboard' },
+                { label: 'Tickets', href: '/tickets' },
+                { label: `#${shortId}` },
+              ]
+            : [
+                { label: 'Tickets', href: '/tickets' },
+                { label: `#${shortId}` },
+              ]
+        }
         actions={
           <div className="d-flex gap-2 align-items-center flex-wrap">
             <Button variant="secondary" icon="refresh" onClick={loadTicketData} loading={actionLoading}>
@@ -193,13 +201,28 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      {/* Customer Resolution Verification Section (Phase 5 Feature) */}
-      {(ticket.status === 'AWAITING_CUSTOMER_CONFIRMATION' || (isCustomer && ticket.status === 'IN_PROGRESS')) && (
+      {/* Customer Resolution Verification Section (Strictly restricted to CUSTOMER role) */}
+      {isCustomer && ticket.status === 'AWAITING_CUSTOMER_CONFIRMATION' && (
         <ServiceResolutionCard
           ticket={ticket}
           customerId={user?.customer_id}
           onResolved={() => loadTicketData()}
         />
+      )}
+
+      {/* Non-Customer Informational Banner when awaiting confirmation */}
+      {!isCustomer && ticket.status === 'AWAITING_CUSTOMER_CONFIRMATION' && (
+        <div className="alert alert-info p-3 mb-4 rounded-3 d-flex align-items-center gap-3 border-info">
+          <span className="material-symbols-outlined text-info" style={{ fontSize: '24px' }}>
+            hourglass_top
+          </span>
+          <div>
+            <strong className="d-block text-on-surface">Awaiting Resident Confirmation</strong>
+            <span className="small text-secondary">
+              The assigned technician has submitted service completion notes. The ticket is currently awaiting resident verification and feedback.
+            </span>
+          </div>
+        </div>
       )}
 
       <div className="row g-4">

@@ -70,7 +70,7 @@ export default function App() {
                 <Route
                   path="/technician/jobs"
                   element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'DISPATCHER', 'TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['TECHNICIAN']}>
                       <TechnicianPortalPage />
                     </ProtectedRoute>
                   }
